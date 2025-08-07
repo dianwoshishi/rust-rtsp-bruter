@@ -1,0 +1,16 @@
+[package]
+name = "rust-rtsp-bruter"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Removed reqwest since we're using raw TCP for RTSP
+# reqwest = { version = "0.11", features = ["json", "stream", "native-tls"] }
+base64 = "0.21"
+md-5 = "0.10"
+rand = "0.8"
+url = "2.4"
+tokio = { version = "1.0", features = ["full"] }
+log = "0.4"
+env_logger = "0.10"
+chrono = { version = "0.4", features = ["serde"] }
