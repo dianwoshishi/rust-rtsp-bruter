@@ -4,6 +4,7 @@ use tokio;
 use tokio::net::TcpStream;
 use chrono::Utc;
 use rand::Rng;
+use rand::rngs::ThreadRng;
 use url::Url;
 use crate::error::RtspError;
 use crate::auth::{self, AuthType};
@@ -58,9 +59,12 @@ impl RtspClient {
         ];
 
         // 随机选择一个User-Agent
-        let mut rng = rand::thread_rng();
-        let random_index = rng.r#gen_range(0..user_agents.len());
-        let user_agent = user_agents[random_index];
+        // 生成随机用户代理 (在await前完成所有随机操作)
+        let user_agent = {
+            let mut rng = rand::thread_rng();
+            let random_index = rng.r#gen_range(0..user_agents.len());
+            user_agents[random_index]
+        };
         log::debug!("Selected User-Agent: {}", user_agent);
 
         // 构建RTSP请求
