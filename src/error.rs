@@ -2,10 +2,24 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::io;
 
-// 自定义错误类型
+// 定义认证结果类型
+#[derive(Debug)]
+pub enum AuthenticationResult {
+    // 认证成功
+    Success,
+    // 无需认证
+    NoAuthenticationRequired,
+    // 认证失败
+    Failed,
+}
+
+// 定义RTSP错误类型
 #[derive(Debug)]
 pub enum RtspError {
+    // URL解析错误
     UrlParseError,
+
+    // 连接错误
     ConnectionError(String),
     IoError(io::Error),
     AuthenticationError(String),

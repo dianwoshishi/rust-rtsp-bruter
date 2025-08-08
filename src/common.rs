@@ -48,7 +48,7 @@ pub async fn send_request(
     .map_err(|e| {
         RtspError::IoError(e)
     })?;
-    log::info!("{} request sent", if request.contains("Authorization") { "Authenticated" } else { "" });
+    log::debug!("{} request sent", if request.contains("Authorization") { "Authenticated" } else { "" });
     Ok(())
 }
 
@@ -77,7 +77,7 @@ pub async fn read_response(
 
     let response = String::from_utf8_lossy(&buffer[..n]).to_string();
     log::debug!("Received response ({} bytes):\n{}", n, response.replace("\r\n", "\n"));
-    log::info!("RTSP response received");
+    log::debug!("RTSP response received");
     Ok(response)
 }
 
@@ -85,7 +85,7 @@ pub async fn read_response(
 pub fn parse_sdp_content(response: &str, auth_success: bool) {
     if let Some(sdp_start) = response.find("\r\n\r\n") {
         let sdp_content = &response[sdp_start + 4..];
-        log::info!("Received SDP content:\n{}", sdp_content);
+        log::debug!("Received SDP content:\n{}", sdp_content);
         if auth_success {
             println!("Success: Received media description (SDP)");
         } else {

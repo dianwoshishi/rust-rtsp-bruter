@@ -1,14 +1,10 @@
-use std::error::Error;
-use std::net::ToSocketAddrs;
 use tokio;
 use tokio::net::TcpStream;
-use chrono::Utc;
 use rand::Rng;
-use rand::rngs::ThreadRng;
 use url::Url;
-use crate::error::RtspError;
-use crate::auth::{self, AuthType};
-use crate::common::{self, build_rtsp_request, send_request, read_response, parse_sdp_content};
+use crate::error::{AuthenticationResult, RtspError};
+use crate::auth::{self};
+use crate::common::{build_rtsp_request, send_request, read_response, parse_sdp_content};
 
 // RTSP客户端
 pub struct RtspClient {
@@ -24,8 +20,8 @@ impl RtspClient {
         }
     }
 
-    // 发送DESCRIBE请求
-    pub async fn describe(&self, url: &str) -> Result<(), RtspError> {
+    // 发送DESCRIBE请求，返回认证结果
+    pub async fn describe(&self, url: &str) -> Result<AuthenticationResult, RtspError> {
         log::debug!("Parsing RTSP URL: {}", url);
         let parsed_url = Url::parse(url).map_err(|_| RtspError::UrlParseError)?;
         let host = parsed_url.host_str().ok_or(RtspError::UrlParseError)?;
@@ -47,7 +43,7 @@ impl RtspClient {
         .map_err(|e| {
             RtspError::ConnectionError(format!("Failed to connect to RTSP server: {}", e))
         })?;
-        log::info!("Connected to RTSP server");
+        log::debug!("Connected to RTSP server");
 
         // 随机User-Agent列表
         let user_agents = [
@@ -87,7 +83,7 @@ impl RtspClient {
 
         // 检查是否需要认证
         if response.contains("401 Unauthorized") {
-            log::info!("Authentication required");
+            log::debug!("Authentication required");
             let auth_type = auth::parse_auth_challenge(&response)?;
             // 生成认证头，使用完整URL作为路径参数
             let full_url = format!("rtsp://{}:{}{}", host, port, path);
@@ -113,25 +109,22 @@ impl RtspClient {
             let auth_response = read_response(&mut stream).await?;
 
             if auth_response.contains("200 OK") {
-                log::info!("Authentication successful");
-                println!("Authentication successful: Valid credentials provided");
+                log::debug!("Authentication successful");
                 // 解析SDP内容
                 parse_sdp_content(&auth_response, true);
+                return Ok(AuthenticationResult::Success);
             } else {
-                return Err(RtspError::AuthenticationError(
-                    "Authentication failed".to_string()
-                ));
+                return Ok(AuthenticationResult::Failed);
             }
         } else if response.contains("200 OK") {
-            log::info!("No authentication required");
+            log::debug!("No authentication required");
             // 解析SDP内容
             parse_sdp_content(&response, false);
+            return Ok(AuthenticationResult::NoAuthenticationRequired);
         } else {
             return Err(RtspError::ProtocolError(format!(
                 "Unexpected response: {}", response
             )));
         }
-
-        Ok(())
     }
 }

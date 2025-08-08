@@ -5,10 +5,11 @@ use tokio::sync::Semaphore;
 use tokio::time::sleep;
 use std::time::Duration;
 use log::{info, error, debug};
-use crate::client::RtspClient;
 use crate::error::RtspError;
+use crate::rtsp_worker::RTSP_WORKER_MANAGER;
 
 // 暴力枚举器
+#[derive(Clone)]
 pub struct BruteForcer {
     rtsp_url: String,
     users_file: String,
@@ -82,16 +83,19 @@ RtspError::IoError(e)
 
     // 尝试单个用户名和密码
     async fn try_credentials(&self, username: &str, password: &str) -> Result<bool, RtspError> {
-        let client = RtspClient::new(username, password);
-        match client.describe(&self.rtsp_url).await {
-            Ok(_) => {
-                info!("Success! Found valid credentials: {}:{} for {}", username, password, self.rtsp_url);
-                println!("Success! Found valid credentials: {}:{}", username, password);
-                Ok(true)
-            },
-            Err(RtspError::AuthenticationError(_)) => {
-                debug!("Failed attempt: {}:{}", username, password);
-                Ok(false)
+        match RTSP_WORKER_MANAGER.auth_request(username, password, &self.rtsp_url).await {
+            Ok(result) => {
+                match result {
+                    Some((valid_username, valid_password)) => {
+                        info!("Success! Found valid credentials: {}:{}", valid_username, valid_password);
+                        println!("Success! Found valid credentials: {}:{}", valid_username, valid_password);
+                        Ok(true)
+                    },
+                    None => {
+                        debug!("Failed attempt: {}:{}", username, password);
+                        Ok(false)
+                    }
+                }
             },
             Err(e) => {
                 error!("Error during authentication attempt: {:?}", e);
@@ -124,20 +128,14 @@ RtspError::IoError(e)
                 let permit = semaphore.clone().acquire_owned().await.unwrap();
                 let username_clone = username.clone();
                 let password_clone = password.clone();
-                let rtsp_url_clone = self.rtsp_url.clone();
+                let this_clone = self.clone();
                 let delay = self.delay;
 
                 let task = tokio::spawn(async move {
                     let _permit = permit; // 保持许可直到任务完成
 
                     // 尝试凭据
-                    let result = BruteForcer {
-                        rtsp_url: rtsp_url_clone,
-                        users_file: String::new(),
-                        passwords_file: String::new(),
-                        max_concurrent: 0,
-                        delay: 0
-                    }.try_credentials(&username_clone, &password_clone).await;
+                    let result = this_clone.try_credentials(&username_clone, &password_clone).await;
 
                     // 延迟下一次尝试
                     sleep(Duration::from_millis(delay)).await;
