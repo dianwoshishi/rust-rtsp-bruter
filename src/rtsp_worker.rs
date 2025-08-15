@@ -1,8 +1,9 @@
-use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex};
-use log::{info, error, debug};
 use crate::client::RtspClient;
 use crate::error::{AuthenticationResult, RtspError};
+use lazy_static::lazy_static;
+use log::{debug, error};
+use std::sync::Arc;
+use tokio::sync::{Mutex, mpsc};
 
 // 定义消息类型
 pub enum RtspMessage {
@@ -52,13 +53,14 @@ impl RtspWorker {
                         let result = async {
                             let client = RtspClient::new(&username, &password);
                             client.describe(&rtsp_url).await
-                        }.await;
+                        }
+                        .await;
 
                         // 发送结果
                         if let Err(e) = response_tx.send(result).await {
                             error!("Failed to send authentication result: {:?}", e);
                         }
-                    },
+                    }
                     RtspMessage::Stop => {
                         debug!("RTSP worker stopping");
                         break;
@@ -131,25 +133,27 @@ impl RtspWorkerManager {
                 response_tx,
             })
             .await
-            .map_err(|e| RtspError::ProtocolError(format!("Failed to send auth request: {:?}", e)))?;
+            .map_err(|e| {
+                RtspError::ProtocolError(format!("Failed to send auth request: {:?}", e))
+            })?;
 
         // 等待响应
         match response_rx.recv().await {
-            Some(result) => {
-                match result {
-                    Ok(AuthenticationResult::Success) => {
-                        Ok(Some((username.to_string(), password.to_string())))
-                    },
-                    Ok(AuthenticationResult::NoAuthenticationRequired) => {
-                        Ok(None)
-                    },
-                    Ok(AuthenticationResult::Failed) => {
-                        Err(RtspError::AuthenticationError("Authentication failed".to_string()))
-                    },
-                    Err(e) => Err(e),
+            Some(result) => match result {
+                Ok(AuthenticationResult::Success) => {
+                    Ok(Some((username.to_string(), password.to_string())))
                 }
+                Ok(AuthenticationResult::NoAuthenticationRequired) => {
+                    Ok(Some(("".to_string(), "".to_string())))
+                }
+                Ok(AuthenticationResult::Failed) => Err(RtspError::AuthenticationError(
+                    "Authentication failed".to_string(),
+                )),
+                Err(e) => Err(e),
             },
-            None => Err(RtspError::ProtocolError("No response from RTSP worker".to_string())),
+            None => Err(RtspError::ProtocolError(
+                "No response from RTSP worker".to_string(),
+            )),
         }
     }
 

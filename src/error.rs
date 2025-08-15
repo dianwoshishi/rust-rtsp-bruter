@@ -16,6 +16,8 @@ pub enum AuthenticationResult {
 // 定义RTSP错误类型
 #[derive(Debug)]
 pub enum RtspError {
+    // 取消错误
+    Cancelled,
     // URL解析错误
     UrlParseError,
 
@@ -24,6 +26,8 @@ pub enum RtspError {
     IoError(io::Error),
     AuthenticationError(String),
     ProtocolError(String),
+    InvalidIpAddress(String),
+    InvalidArgument(String),
 }
 
 impl fmt::Display for RtspError {
@@ -34,6 +38,9 @@ impl fmt::Display for RtspError {
             RtspError::IoError(e) => write!(f, "IO error: {}", e),
             RtspError::AuthenticationError(e) => write!(f, "Authentication error: {}", e),
             RtspError::ProtocolError(e) => write!(f, "Protocol error: {}", e),
+            RtspError::InvalidIpAddress(e) => write!(f, "Invalid IP address: {}", e),
+            RtspError::InvalidArgument(e) => write!(f, "Invalid argument: {}", e),
+            RtspError::Cancelled => write!(f, "Operation cancelled"),
         }
     }
 }

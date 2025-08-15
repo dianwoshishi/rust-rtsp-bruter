@@ -1,24 +1,24 @@
-use md5::{Md5, Digest};
-use rand::Rng;
-use base64::Engine;
 use crate::error::RtspError;
+use base64::Engine;
+use md5::{Digest, Md5};
+use rand::Rng;
 
 // RTSP认证类型
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum AuthType {
     None,
-    Basic(String),
+    Basic(()),
     Digest(DigestAuthInfo),
 }
 
 // Digest认证信息
-#[derive(Debug)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct DigestAuthInfo {
     pub realm: String,
     pub nonce: String,
     pub qop: Option<String>,
     pub algorithm: Option<String>,
-    pub opaque: Option<String>,
+    // pub opaque: Option<String>,
 }
 
 // 认证工具函数
@@ -29,12 +29,14 @@ pub fn parse_auth_challenge(response: &str) -> Result<AuthType, RtspError> {
             let auth_str = auth_header.trim();
 
             if auth_str.starts_with("Basic ") {
-                let realm = auth_str["Basic ".len()..].trim().to_string();
-                log::info!("Basic authentication required, realm: {}", realm);
-                return Ok(AuthType::Basic(realm));
+                log::info!("Basic authentication required");
+                return Ok(AuthType::Basic(()));
             } else if auth_str.starts_with("Digest ") {
                 let digest_info = parse_digest_challenge(&auth_str["Digest ".len()..])?;
-                log::info!("Digest authentication required, realm: {}", digest_info.realm);
+                log::info!(
+                    "Digest authentication required, realm: {}",
+                    digest_info.realm
+                );
                 return Ok(AuthType::Digest(digest_info));
             }
         }
@@ -49,7 +51,7 @@ pub fn parse_digest_challenge(challenge: &str) -> Result<DigestAuthInfo, RtspErr
     let mut nonce = String::new();
     let mut qop = None;
     let mut algorithm = None;
-    let mut opaque = None;
+    // let mut opaque = None;
 
     for param in challenge.split(",") {
         let parts: Vec<&str> = param.trim().splitn(2, "=").collect();
@@ -65,14 +67,14 @@ pub fn parse_digest_challenge(challenge: &str) -> Result<DigestAuthInfo, RtspErr
             "nonce" => nonce = value.to_string(),
             "qop" => qop = Some(value.to_string()),
             "algorithm" => algorithm = Some(value.to_string()),
-            "opaque" => opaque = Some(value.to_string()),
-            _ => {},
+            // "opaque" => opaque = Some(value.to_string()),
+            _ => {}
         }
     }
 
     if realm.is_empty() || nonce.is_empty() {
         return Err(RtspError::AuthenticationError(
-            "Invalid Digest challenge: missing realm or nonce".to_string()
+            "Invalid Digest challenge: missing realm or nonce".to_string(),
         ));
     }
 
@@ -81,19 +83,25 @@ pub fn parse_digest_challenge(challenge: &str) -> Result<DigestAuthInfo, RtspErr
         nonce,
         qop,
         algorithm,
-        opaque,
+        // opaque,
     })
 }
 
 // 生成认证头
-pub fn generate_auth_header(auth_type: &AuthType, username: &str, password: &str, method: &str, path: &str) -> Result<String, RtspError> {
+pub fn generate_auth_header(
+    auth_type: &AuthType,
+    username: &str,
+    password: &str,
+    method: &str,
+    path: &str,
+) -> Result<String, RtspError> {
     match auth_type {
         AuthType::Basic(_) => {
             // Basic认证: base64(username:password)
             let credentials = format!("{}:{}", username, password);
             let encoded = base64::engine::general_purpose::STANDARD.encode(credentials);
             Ok(format!("Basic {}", encoded))
-        },
+        }
         AuthType::Digest(info) => {
             // Digest认证
             let algorithm = info.algorithm.as_deref().unwrap_or("MD5");
@@ -110,7 +118,8 @@ pub fn generate_auth_header(auth_type: &AuthType, username: &str, password: &str
             let ha2 = format!("{:x}", Md5::digest(ha2_input.as_bytes()));
 
             // 计算response = MD5(ha1:nonce:nc:cnonce:qop:ha2)
-            let response_input = format!("{}:{}:{}:{}:{}:{}", ha1, info.nonce, nc, cnonce, qop, ha2);
+            let response_input =
+                format!("{}:{}:{}:{}:{}:{}", ha1, info.nonce, nc, cnonce, qop, ha2);
             let response = format!("{:x}", Md5::digest(response_input.as_bytes()));
 
             // 构建Digest认证头
@@ -120,10 +129,10 @@ pub fn generate_auth_header(auth_type: &AuthType, username: &str, password: &str
             );
 
             Ok(digest_header)
-        },
-        AuthType::None => {
-            Err(RtspError::AuthenticationError("No authentication type specified".to_string()))
         }
+        AuthType::None => Err(RtspError::AuthenticationError(
+            "No authentication type specified".to_string(),
+        )),
     }
 }
 
