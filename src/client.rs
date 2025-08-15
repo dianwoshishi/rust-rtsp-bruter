@@ -1,4 +1,4 @@
-use crate::auth::{self};
+use crate::auth;
 use crate::common::{build_rtsp_request, parse_sdp_content, read_response, send_request};
 use crate::error::{AuthenticationResult, RtspError};
 use rand::Rng;
@@ -129,4 +129,90 @@ impl RtspClient {
             )));
         }
     }
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::test;
+
+    // 测试成功连接到不需要认证的RTSP服务器
+    #[test]
+    async fn test_describe_no_auth() {
+        // 注意：这个测试需要一个真实的不需要认证的RTSP服务器
+        // 在实际运行测试前，你可能需要修改这个URL
+        let url = "rtsp://211.79.64.12:554"; 
+        let client = RtspClient::new("", "");
+
+        let result = client.describe(url).await;
+        assert!(result.is_ok());
+        let auth_result = result.unwrap();
+        match auth_result {
+            AuthenticationResult::NoAuthenticationRequired => {}
+            _ => panic!("Expected NoAuthenticationRequired, got {:?}", auth_result)
+        }
+    }
+
+    // 测试连接到需要认证的RTSP服务器但提供错误凭据，预期认证失败
+    #[test]
+    async fn test_describe_auth_failed() {
+        // 注意：这个测试需要一个真实的需要认证的RTSP服务器
+        // 在实际运行测试前，你可能需要修改这个URL和凭据
+        let url = "rtsp://119.49.2.87:554";
+        let client = RtspClient::new("invalid_user", "invalid_password");
+
+        let result = client.describe(url).await;
+        assert!(result.is_ok());
+        let auth_result = result.unwrap();
+        match auth_result {
+            AuthenticationResult::Failed => {}
+            _ => panic!("Expected Failed, got {:?}", auth_result),
+        }
+    }
+
+    // // 测试连接到需要认证的RTSP服务器但提供错误凭据
+    // #[test]
+    // async fn test_describe_auth_failure() {
+    //     // 注意：这个测试需要一个真实的需要认证的RTSP服务器
+    //     // 在实际运行测试前，你可能需要修改这个URL和凭据
+    //     let url = "rtsp://example.com/auth";
+    //     let client = RtspClient::new("invalid_user", "invalid_password");
+
+    //     let result = client.describe(url).await;
+    //     assert!(result.is_ok());
+    //     match result.unwrap() {
+    //         AuthenticationResult::Failed => {}
+    //         _ => panic!("Expected Failed, got {:?}", result),
+    //     }
+    // }
+
+    // // 测试连接到不存在的RTSP服务器
+    // #[test]
+    // async fn test_describe_connection_error() {
+    //     let url = "rtsp://non_existent_domain_123456789:554/stream";
+    //     let client = RtspClient::new("user", "pass");
+
+    //     let result = client.describe(url).await;
+    //     assert!(result.is_err());
+    //     match result.unwrap_err() {
+    //         RtspError::ConnectionError(_) => {}
+    //         _ => panic!("Expected ConnectionError, got {:?}", result),
+    //     }
+    // }
+
+    // // 测试无效的RTSP URL
+    // #[test]
+    // async fn test_describe_invalid_url() {
+    //     let url = "invalid_rtsp_url";
+    //     let client = RtspClient::new("user", "pass");
+
+    //     let result = client.describe(url).await;
+    //     assert!(result.is_err());
+    //     match result.unwrap_err() {
+    //         RtspError::UrlParseError => {}
+    //         _ => panic!("Expected UrlParseError, got {:?}", result),
+    //     }
+    // }
 }

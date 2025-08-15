@@ -18,7 +18,7 @@ pub struct DigestAuthInfo {
     pub nonce: String,
     pub qop: Option<String>,
     pub algorithm: Option<String>,
-    // pub opaque: Option<String>,
+    pub opaque: Option<String>,
 }
 
 // 认证工具函数
@@ -29,11 +29,11 @@ pub fn parse_auth_challenge(response: &str) -> Result<AuthType, RtspError> {
             let auth_str = auth_header.trim();
 
             if auth_str.starts_with("Basic ") {
-                log::info!("Basic authentication required");
+                log::debug!("Basic authentication required");
                 return Ok(AuthType::Basic(()));
             } else if auth_str.starts_with("Digest ") {
                 let digest_info = parse_digest_challenge(&auth_str["Digest ".len()..])?;
-                log::info!(
+                log::debug!(
                     "Digest authentication required, realm: {}",
                     digest_info.realm
                 );
@@ -51,7 +51,7 @@ pub fn parse_digest_challenge(challenge: &str) -> Result<DigestAuthInfo, RtspErr
     let mut nonce = String::new();
     let mut qop = None;
     let mut algorithm = None;
-    // let mut opaque = None;
+    let mut opaque = None;
 
     for param in challenge.split(",") {
         let parts: Vec<&str> = param.trim().splitn(2, "=").collect();
@@ -67,7 +67,7 @@ pub fn parse_digest_challenge(challenge: &str) -> Result<DigestAuthInfo, RtspErr
             "nonce" => nonce = value.to_string(),
             "qop" => qop = Some(value.to_string()),
             "algorithm" => algorithm = Some(value.to_string()),
-            // "opaque" => opaque = Some(value.to_string()),
+            "opaque" => opaque = Some(value.to_string()),
             _ => {}
         }
     }
@@ -83,7 +83,7 @@ pub fn parse_digest_challenge(challenge: &str) -> Result<DigestAuthInfo, RtspErr
         nonce,
         qop,
         algorithm,
-        // opaque,
+        opaque,
     })
 }
 
