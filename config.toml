@@ -1,0 +1,6 @@
+# 默认配置文件
+mode = "brute"
+users_file = "users.txt"
+passwords_file = "passwords.txt"
+ips_file = "iplist.txt"
+max_concurrent = 5

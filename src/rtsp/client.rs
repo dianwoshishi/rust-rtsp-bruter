@@ -1,6 +1,6 @@
+use crate::errors::errors::{AuthenticationResult, RtspError};
 use crate::rtsp::auth;
 use crate::rtsp::common::{build_rtsp_request, parse_sdp_content, read_response, send_request};
-use crate::errors::errors::{AuthenticationResult, RtspError};
 use rand::Rng;
 use std::marker::Send;
 use std::pin::Pin;
@@ -62,15 +62,7 @@ impl RtspClient {
         auth_header: Option<&str>,
     ) -> String {
         let full_url = format!("rtsp://{}:{}{}", host, port, path);
-        build_rtsp_request(
-            method,
-            &full_url,
-            host,
-            port,
-            cseq,
-            user_agent,
-            auth_header,
-        )
+        build_rtsp_request(method, &full_url, host, port, cseq, user_agent, auth_header)
     }
 
     // 解析RTSP响应类型
@@ -81,7 +73,6 @@ impl RtspClient {
             RtspResponseType::Ok
         } else {
             RtspResponseType::Other(response.to_string())
-
         }
     }
 
@@ -94,8 +85,9 @@ impl RtspClient {
         port: u16,
         path: &'a str,
         user_agent: &'a str,
-        auth_header: Option<&'a str>
-    ) -> Pin<Box<dyn futures::Future<Output = Result<AuthenticationResult, RtspError>> + Send + 'a>> {
+        auth_header: Option<&'a str>,
+    ) -> Pin<Box<dyn futures::Future<Output = Result<AuthenticationResult, RtspError>> + Send + 'a>>
+    {
         Box::pin(async move {
             // 发送请求
             send_request(stream, request).await?;
@@ -113,15 +105,9 @@ impl RtspClient {
                         // 无认证头，则需要根据响应进一步认证
                         None => {
                             self.handle_auth(
-                                stream,
-                                &response,
-                                host,
-                                port,
-                                path,
-                                user_agent,
-                                "DESCRIBE",
-                                2,
-                            ).await
+                                stream, &response, host, port, path, user_agent, "DESCRIBE", 2,
+                            )
+                            .await
                         }
                         //有认证头，说明已经认证过一次了，直接返回失败
                         Some(_) => Ok(AuthenticationResult::Failed),
@@ -133,7 +119,7 @@ impl RtspClient {
                     // 解析认证类型
                     match auth_header {
                         None => Ok(AuthenticationResult::NoAuthenticationRequired),
-                        Some(_) => Ok(AuthenticationResult::Success)
+                        Some(_) => Ok(AuthenticationResult::Success),
                     }
                 }
                 RtspResponseType::Other(msg) => {
@@ -158,10 +144,10 @@ impl RtspClient {
     ) -> Result<AuthenticationResult, RtspError> {
         log::debug!("Handling authentication for {} request", method);
         let auth_type = auth::parse_auth_challenge(response)?;
-        
+
         // 生成完整URL
         let full_url = format!("rtsp://{}:{}{}", host, port, path);
-        
+
         // 生成认证头
         let auth_header = auth::generate_auth_header(
             &auth_type,
@@ -192,7 +178,8 @@ impl RtspClient {
             path,
             user_agent,
             Some(&auth_header),
-        ).await
+        )
+        .await
     }
 
     // 发送DESCRIBE请求，返回认证结果
@@ -230,21 +217,20 @@ impl RtspClient {
         // 构建初始RTSP请求
         let request = self.build_request("DESCRIBE", host, port, &path, user_agent, 1, auth_header);
 
-
         // 使用通用方法发送请求并处理响应
-        return self.send_and_process_request(
-            &mut stream,
-            &request,
-            host,
-            port,
-            &path,
-            user_agent,
-            auth_header
-        ).await;
+        return self
+            .send_and_process_request(
+                &mut stream,
+                &request,
+                host,
+                port,
+                &path,
+                user_agent,
+                auth_header,
+            )
+            .await;
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -256,7 +242,7 @@ mod tests {
     // async fn test_describe_no_auth() {
     //     // 注意：这个测试需要一个真实的不需要认证的RTSP服务器
     //     // 在实际运行测试前，你可能需要修改这个URL
-    //     let url = "rtsp://211.79.64.12:554"; 
+    //     let url = "rtsp://211.79.64.12:554";
     //     let client = RtspClient::new("", "");
 
     //     let result = client.describe(url).await;

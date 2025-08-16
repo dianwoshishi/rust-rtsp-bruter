@@ -1,15 +1,15 @@
-use crate::iterator::credential_iterator::CredentialIterator;
+use crate::brute::task_manager::TaskManager;
 use crate::errors::errors::RtspError;
+use crate::iterator::credential_iterator::CredentialIterator;
 use crate::iterator::ip_iterator::{IpIterator, IpPortAddr};
 use crate::rtsp::rtsp_worker::RTSP_WORKER_MANAGER;
-use crate::brute::task_manager::TaskManager;
 use log::{debug, error, info, trace};
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use tokio::sync::Semaphore;
 use tokio::time::Instant;
-use std::thread;
 
 /// 存储找到的RTSP认证凭据信息
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -77,23 +77,35 @@ impl BruteForcer {
         ip_port: &IpPortAddr,
     ) -> Result<Option<FoundCredential>, RtspError> {
         let rtsp_url = format!("rtsp://{}:{}", ip_port.ip, ip_port.port);
-        debug!("Task started: Scanning {}: {}:{} on thread {:?}", 
-               rtsp_url, username, password, thread::current().id());
+        debug!(
+            "Task started: Scanning {}: {}:{} on thread {:?}",
+            rtsp_url,
+            username,
+            password,
+            thread::current().id()
+        );
 
         // 检查IP是否已经找到有效的凭据
         if self.has_valid_credentials_for_ip(ip_port) {
-            debug!("Skipping {}:{} as valid credentials already found",
-                   &ip_port.ip, &ip_port.port);
+            debug!(
+                "Skipping {}:{} as valid credentials already found",
+                &ip_port.ip, &ip_port.port
+            );
             return Ok(None);
         }
 
         let start_time = Instant::now();
-        match RTSP_WORKER_MANAGER.auth_request(username, password, &rtsp_url).await {
+        match RTSP_WORKER_MANAGER
+            .auth_request(username, password, &rtsp_url)
+            .await
+        {
             Ok(result) => {
                 let duration = start_time.elapsed();
-                debug!("Task completed in {:?}: Scanning {}: {}:{}", 
-                       duration, rtsp_url, username, password);
-                         
+                debug!(
+                    "Task completed in {:?}: Scanning {}: {}:{}",
+                    duration, rtsp_url, username, password
+                );
+
                 match result {
                     Some((valid_username, valid_password)) => {
                         let found_cred = FoundCredential {
@@ -106,13 +118,13 @@ impl BruteForcer {
                         self.add_found_credential(found_cred.clone());
 
                         Ok(Some(found_cred))
-                    },
+                    }
                     None => {
                         debug!("Failed attempt: {}:{}", username, password);
                         Ok(None)
                     }
                 }
-            },
+            }
             Err(e) => {
                 error!("Error during authentication attempt: {:?}", e);
                 Err(e)
@@ -139,11 +151,15 @@ impl BruteForcer {
         let start_time = Instant::now();
         info!("Max concurrent attempts: {}", self.max_concurrent);
         info!("Total IPs to scan: {}", self.ip_iterator.clone().count());
-        info!("Total credential combinations: {}", self.credential_iterator.clone().count());
+        info!(
+            "Total credential combinations: {}",
+            self.credential_iterator.clone().count()
+        );
 
         // 创建信号量限制并发数
         let semaphore = Arc::new(Semaphore::new(self.max_concurrent as usize));
-        let total_tasks = self.ip_iterator.clone().count() * self.credential_iterator.clone().count();
+        let total_tasks =
+            self.ip_iterator.clone().count() * self.credential_iterator.clone().count();
         info!("Total tasks to create: {}", total_tasks);
         let mut tasks = Vec::new();
 
@@ -161,22 +177,26 @@ impl BruteForcer {
                 trace!("Creating task {} of {}", task_idx + 1, total_tasks);
                 let task = tokio::spawn(async move {
                     let _permit = permit;
-                    trace!("Task {} started on thread {:?}", 
-                           task_idx + 1, thread::current().id());
-                    let result = this_clone.try_credentials(
-                        &username_clone, &password_clone, &ip_clone
-                    ).await;
+                    trace!(
+                        "Task {} started on thread {:?}",
+                        task_idx + 1,
+                        thread::current().id()
+                    );
+                    let result = this_clone
+                        .try_credentials(&username_clone, &password_clone, &ip_clone)
+                        .await;
                     trace!("Task {} completed", task_idx + 1);
                     result
                 });
                 tasks.push(task);
-
             }
         }
 
         info!("All tasks created. Waiting for completion...");
         // 等待所有任务完成并处理结果
-        self.task_manager.process_task_results(tasks, start_time, total_tasks).await;
+        self.task_manager
+            .process_task_results(tasks, start_time, total_tasks)
+            .await;
 
         Ok(())
     }

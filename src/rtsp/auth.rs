@@ -36,10 +36,10 @@ pub fn parse_auth_challenge(response: &str) -> Result<AuthType, RtspError> {
                     digest_info.realm
                 );
                 return Ok(AuthType::Digest(digest_info));
-            }else if auth_str.starts_with("Basic ") {
+            } else if auth_str.starts_with("Basic ") {
                 log::debug!("Basic authentication required");
                 return Ok(AuthType::Basic(()));
-            } 
+            }
         }
     }
 
@@ -119,8 +119,7 @@ pub fn generate_auth_header(
             let ha2 = format!("{:x}", Md5::digest(ha2_input.as_bytes()));
 
             // 计算response = MD5(ha1:nonce:nc:cnonce:qop:ha2)
-            let response_input =
-                format!("{}:{}:{}", ha1, info.nonce, ha2);
+            let response_input = format!("{}:{}:{}", ha1, info.nonce, ha2);
             let response = format!("{:x}", Md5::digest(response_input.as_bytes()));
 
             // 构建Digest认证头
@@ -143,5 +142,3 @@ pub fn generate_cnonce() -> String {
     let random_bytes: [u8; 16] = rng.r#gen();
     format!("{:x}", Md5::digest(&random_bytes))
 }
-
-

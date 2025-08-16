@@ -1,6 +1,6 @@
 use rand::Rng;
-use rust_rtsp_bruter::cli::cli::Cli;
 use rust_rtsp_bruter::cli::cli::parse_brute_args;
+use rust_rtsp_bruter::config::config::Cli;
 use std::io::Write;
 
 // 临时文件结构体，实现Drop特性自动删除文件
@@ -44,7 +44,7 @@ fn test_parse_brute_args_files_files() {
     let passwords_file = create_temp_file("pass1\npass2");
     let ips_file = create_temp_file("192.168.1.1\n192.168.1.2");
 
-    let cli = Cli::Brute {
+    let cli = Cli::Args {
         users_file: Some(users_file.path().to_string()),
         users_string: None,
         passwords_file: Some(passwords_file.path().to_string()),
@@ -71,7 +71,7 @@ fn test_parse_brute_args_files_string() {
     let password = "password123".to_string();
     let ips_file = create_temp_file("192.168.1.1");
 
-    let cli = Cli::Brute {
+    let cli = Cli::Args {
         users_file: Some(users_file.path().to_string()),
         users_string: None,
         passwords_file: None,
@@ -96,7 +96,7 @@ fn test_parse_brute_args_string_files() {
     let passwords_file = create_temp_file("pass1\npass2");
     let ips_string = "127.0.0.1".to_string();
 
-    let cli = Cli::Brute {
+    let cli = Cli::Args {
         users_file: None,
         users_string: Some(username),
         passwords_file: Some(passwords_file.path().to_string()),
@@ -121,7 +121,7 @@ fn test_parse_brute_args_string_string() {
     let password = "password".to_string();
     let ips_string = "127.0.0.1".to_string();
 
-    let cli = Cli::Brute {
+    let cli = Cli::Args {
         users_file: None,
         users_string: Some(username),
         passwords_file: None,
@@ -142,7 +142,7 @@ fn test_parse_brute_args_invalid_ip_source() {
     let ips_file = create_temp_file("192.168.1.1");
     let ips_string = "127.0.0.1".to_string();
 
-    let cli = Cli::Brute {
+    let cli = Cli::Args {
         users_file: Some(users_file.path().to_string()),
         users_string: None,
         passwords_file: Some(passwords_file.path().to_string()),
@@ -166,7 +166,7 @@ fn test_parse_brute_args_invalid_user_source() {
     let passwords_file = create_temp_file("pass1");
     let ips_string = "127.0.0.1".to_string();
 
-    let cli = Cli::Brute {
+    let cli = Cli::Args {
         users_file: Some(users_file.path().to_string()),
         users_string: Some(users_string),
         passwords_file: Some(passwords_file.path().to_string()),

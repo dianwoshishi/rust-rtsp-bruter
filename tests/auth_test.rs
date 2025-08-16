@@ -1,5 +1,7 @@
-use rust_rtsp_bruter::rtsp::auth::{parse_auth_challenge, generate_auth_header, AuthType, DigestAuthInfo};
 use md5::Digest;
+use rust_rtsp_bruter::rtsp::auth::{
+    AuthType, DigestAuthInfo, generate_auth_header, parse_auth_challenge,
+};
 
 // 测试Digest认证响应生成
 #[test]
@@ -42,7 +44,8 @@ fn test_digest_auth_response_generation() {
     println!("Generated auth header: {}", auth_header);
 
     // 验证响应值是否匹配预期
-    assert!(auth_header.contains(&format!("response=\"{}\"", expected_response)),
+    assert!(
+        auth_header.contains(&format!("response=\"{}\"", expected_response)),
         "Response does not match expected value. Expected: {}, Got: {}",
         expected_response,
         auth_header
@@ -53,8 +56,8 @@ fn test_digest_auth_response_generation() {
 #[test]
 fn test_full_auth_flow_parsing() {
     // 原始401响应
-    let unauthorized_response = "RTSP/1.0 401 Unauthorized\r\n"
-        .to_string() + "CSeq: 3\r\n"
+    let unauthorized_response = "RTSP/1.0 401 Unauthorized\r\n".to_string()
+        + "CSeq: 3\r\n"
         + "Date: Sat, Aug 16 2025 01:19:15 GMT\r\n"
         + "Expires: Sat, Aug 16 2025 01:19:15 GMT\r\n"
         + "WWW-Authenticate: Digest realm=\"RTSP SERVER\", nonce=\"72fb3f3f23ded5a9d8f9be5a4535bf84\", stale=\"FALSE\"\r\n\r\n";
@@ -67,7 +70,7 @@ fn test_full_auth_flow_parsing() {
         AuthType::Digest(info) => {
             assert_eq!(info.realm, "RTSP SERVER");
             assert_eq!(info.nonce, "72fb3f3f23ded5a9d8f9be5a4535bf84");
-        },
+        }
         _ => panic!("Expected Digest authentication type"),
     }
 

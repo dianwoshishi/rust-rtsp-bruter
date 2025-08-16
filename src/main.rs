@@ -1,13 +1,11 @@
 use std::error::Error;
 extern crate lazy_static;
-
-use clap::Parser;
 use log::{debug, info};
 use log4rs;
-use rust_rtsp_bruter::cli::cli::{handle_cli, self};
+use rust_rtsp_bruter::config::config::load_config_and_handle_cli;
 use rust_rtsp_bruter::rtsp::rtsp_worker::RTSP_WORKER_MANAGER;
-use tokio;
 use std::time::Instant;
+use tokio;
 
 // 主函数
 #[tokio::main]
@@ -22,8 +20,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     RTSP_WORKER_MANAGER.start().await;
     debug!("RTSP worker manager started");
 
-    // 处理命令行参数
-    handle_cli(cli::Cli::parse()).await?;
+    // 加载配置并处理命令行参数
+    load_config_and_handle_cli().await?;
 
     // 统一停止RTSP工作线程
     RTSP_WORKER_MANAGER.stop().await;

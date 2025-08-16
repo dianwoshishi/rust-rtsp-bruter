@@ -1,5 +1,5 @@
-use crate::iterator::credential_iterator::CredentialIterator;
 use crate::errors::errors::RtspError;
+use crate::iterator::credential_iterator::CredentialIterator;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::vec::Vec;

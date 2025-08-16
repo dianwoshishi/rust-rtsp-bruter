@@ -1,5 +1,5 @@
-use crate::rtsp::client::RtspClient;
 use crate::errors::errors::{AuthenticationResult, RtspError};
+use crate::rtsp::client::RtspClient;
 use lazy_static::lazy_static;
 use log::{debug, error, info, trace};
 use std::sync::Arc;
@@ -56,7 +56,10 @@ impl RtspWorker {
                         response_tx,
                     } => {
                         let start_time = Instant::now();
-                        debug!("Worker {} processing auth request for {}@{}:123", id, username, rtsp_url);
+                        debug!(
+                            "Worker {} processing auth request for {}@{}:123",
+                            id, username, rtsp_url
+                        );
                         // 执行认证
                         let result = async {
                             let client = RtspClient::new(&username, &password);
@@ -151,7 +154,10 @@ impl RtspWorkerManager {
         }
 
         *running = true;
-        info!("RTSP worker pool with {} workers started", self.worker_count);
+        info!(
+            "RTSP worker pool with {} workers started",
+            self.worker_count
+        );
     }
 
     // 轮询选择下一个工作线程
@@ -182,10 +188,13 @@ impl RtspWorkerManager {
             let index = self.get_next_worker_index().await;
             // 获取对应的发送器
             let senders = self.senders.lock().await;
-            let sender = senders.get(index).ok_or_else(|| {
-                RtspError::ProtocolError("No available workers".to_string())
-            })?;
-            debug!("RTSP worker {} selected for auth request to {}", index, rtsp_url);
+            let sender = senders
+                .get(index)
+                .ok_or_else(|| RtspError::ProtocolError("No available workers".to_string()))?;
+            debug!(
+                "RTSP worker {} selected for auth request to {}",
+                index, rtsp_url
+            );
             sender.clone()
         };
         // 发送认证请求
@@ -210,15 +219,11 @@ impl RtspWorkerManager {
                 Ok(AuthenticationResult::NoAuthenticationRequired) => {
                     Ok(Some(("".to_string(), "".to_string())))
                 }
-                Ok(AuthenticationResult::Failed) => {
-                    Ok(None)
-                }
-                Err(e) => {
-                    Err(RtspError::AuthenticationError(format!(
-                        "Authentication failed: {:?} for {}",
-                        e, rtsp_url
-                    )))
-                },
+                Ok(AuthenticationResult::Failed) => Ok(None),
+                Err(e) => Err(RtspError::AuthenticationError(format!(
+                    "Authentication failed: {:?} for {}",
+                    e, rtsp_url
+                ))),
             },
             None => Err(RtspError::ProtocolError(
                 "No response from RTSP worker".to_string(),
