@@ -248,8 +248,8 @@ impl RtspClient {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use tokio::test;
+    // use super::*;
+    // use tokio::test;
 
     // 测试成功连接到不需要认证的RTSP服务器
     // #[test]

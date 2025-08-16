@@ -6,9 +6,9 @@ use log::{debug, error, info};
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+// use std::time::Duration;
 use tokio::sync::{Semaphore, broadcast::channel as broadcast_channel};
-use tokio::time::sleep;
+// use tokio::time::sleep;
 
 // 存储找到的RTSP认证凭据信息
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
@@ -67,11 +67,11 @@ impl BruteForcer {
         self
     }
 
-    // 设置延迟
-    pub fn with_delay(mut self, delay: u64) -> Self {
-        self.delay = delay;
-        self
-    }
+    // // 设置延迟
+    // pub fn with_delay(mut self, delay: u64) -> Self {
+    //     self.delay = delay;
+    //     self
+    // }
 
     // 尝试单个用户名、密码和URL
     pub async fn try_credentials(
@@ -130,7 +130,7 @@ impl BruteForcer {
     async fn brute_force_single_ip(
         &self,
         ip: IpPortAddr,
-        delay: u64,
+        // delay: u64,
     ) -> Result<Option<FoundCredential>, RtspError> {
         let (cancel_tx, _) = broadcast_channel::<()>(1);
         let mut cancel_rx = cancel_tx.subscribe();
@@ -146,7 +146,7 @@ impl BruteForcer {
             // 为每次迭代克隆必要的变量
             let this_clone_iter = this_clone.clone();
             let ip_clone = ip.clone();
-            let delay_clone = delay;
+            // let delay_clone = delay;
 
             // 检查是否收到取消信号
             tokio::select! {
@@ -208,11 +208,11 @@ impl BruteForcer {
         for ip in self.ip_iterator.clone() {
             let permit = semaphore.clone().acquire_owned().await.unwrap();
             let this_clone = self.clone();
-            let delay = self.delay;
+            // let delay = self.delay;
 
             let task = tokio::spawn(async move {
                 let _permit = permit; // 保持许可直到任务完成
-                this_clone.brute_force_single_ip(ip, delay).await
+                this_clone.brute_force_single_ip(ip).await
             });
 
             ip_tasks.push(task);

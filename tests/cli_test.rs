@@ -52,7 +52,6 @@ fn test_parse_brute_args_files_files() {
         ips_file: Some(ips_file.path().to_string()),
         ips_string: None,
         max_concurrent: 5,
-        delay: 100,
     };
 
     // 我们不能真正执行brute_force，所以这里只测试参数解析
@@ -80,7 +79,6 @@ fn test_parse_brute_args_files_string() {
         ips_file: Some(ips_file.path().to_string()),
         ips_string: None,
         max_concurrent: 5,
-        delay: 100,
     };
 
     match parse_brute_args(cli) {
@@ -106,7 +104,6 @@ fn test_parse_brute_args_string_files() {
         ips_file: None,
         ips_string: Some(ips_string),
         max_concurrent: 5,
-        delay: 100,
     };
 
     match parse_brute_args(cli) {
@@ -132,7 +129,6 @@ fn test_parse_brute_args_string_string() {
         ips_file: None,
         ips_string: Some(ips_string),
         max_concurrent: 5,
-        delay: 100,
     };
 
     assert!(parse_brute_args(cli).is_ok());
@@ -154,7 +150,6 @@ fn test_parse_brute_args_invalid_ip_source() {
         ips_file: Some(ips_file.path().to_string()),
         ips_string: Some(ips_string),
         max_concurrent: 5,
-        delay: 100,
     };
 
     let result = parse_brute_args(cli);
@@ -179,7 +174,6 @@ fn test_parse_brute_args_invalid_user_source() {
         ips_file: None,
         ips_string: Some(ips_string),
         max_concurrent: 5,
-        delay: 100,
     };
 
     // 这里我们期望Clap会在解析阶段就失败，而不是在handle_cli中

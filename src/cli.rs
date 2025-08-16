@@ -36,16 +36,16 @@ pub enum Cli {
         /// 最大并发连接数
         #[arg(short, long, default_value_t = 5)]
         max_concurrent: u32,
-        /// 尝试之间的延迟(毫秒)
-        #[arg(short, long, default_value_t = 100)]
-        delay: u64,
+        // /// 尝试之间的延迟(毫秒)
+        // #[arg(short, long, default_value_t = 100)]
+        // delay: u64,
     },
 }
 
 // 解析Brute模式的命令行参数
 pub fn parse_brute_args(
     brute: Cli,
-) -> Result<(IpIterator, CredentialIterator, u32, u64), Box<dyn Error>> {
+) -> Result<(IpIterator, CredentialIterator, u32), Box<dyn Error>> {
     let Cli::Brute {
         users_file,
         users_string,
@@ -54,7 +54,7 @@ pub fn parse_brute_args(
         ips_file,
         ips_string,
         max_concurrent,
-        delay,
+        // delay,
     } = brute;
 
     log::debug!("RTSP Bruteforcer started in brute force mode");
@@ -80,7 +80,7 @@ pub fn parse_brute_args(
         ),
     }
     log::debug!("Max concurrent connections: {}", max_concurrent);
-    log::debug!("Delay between attempts: {}ms", delay);
+    // log::debug!("Delay between attempts: {}ms", delay);
 
     // 创建IP读取器
     let ip_reader = match (ips_file, ips_string) {
@@ -118,17 +118,17 @@ pub fn parse_brute_args(
     };
     let cred_iterator = credential_reader.into_iterator()?;
 
-    Ok((ip_iterator, cred_iterator, max_concurrent, delay))
+    Ok((ip_iterator, cred_iterator, max_concurrent))
 }
 
 // 处理命令行参数并执行相应的操作
 pub async fn handle_cli(cli: Cli) -> Result<(), Box<dyn Error>> {
-    let (ip_iterator, cred_iterator, max_concurrent, delay) = parse_brute_args(cli)?;
+    let (ip_iterator, cred_iterator, max_concurrent) = parse_brute_args(cli)?;
 
     // 创建暴力枚举器
     let brute_forcer = crate::brute::BruteForcer::new()
         .with_max_concurrent(max_concurrent)
-        .with_delay(delay)
+        // .with_delay(delay)
         .with_ip_iterator(ip_iterator)
         .with_cred_iterator(cred_iterator);
 
