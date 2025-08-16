@@ -8,6 +8,7 @@ use tokio;
 use tokio::net::TcpStream;
 use url::Url;
 
+const TCP_TIMEOUT: usize = 5;
 // RTSP客户端
 pub struct RtspClient {
     username: String,
@@ -102,7 +103,7 @@ impl RtspClient {
                     // 如果有认证头，说明已经自动解析过一次了。则直接返回失败。
 
                     match auth_header {
-                        // 无认证头，则需要根据响应进一步认证
+                        // 无认证头（第一次），则需要根据响应进一步认证
                         None => {
                             self.handle_auth(
                                 stream, &response, host, port, path, user_agent, "DESCRIBE", 2,
@@ -202,7 +203,7 @@ impl RtspClient {
         log::debug!("Connecting to RTSP server at {}", addr);
         // 设置连接超时为5秒
         let mut stream =
-            tokio::time::timeout(std::time::Duration::from_secs(5), TcpStream::connect(addr))
+            tokio::time::timeout(std::time::Duration::from_secs(TCP_TIMEOUT as u64), TcpStream::connect(addr))
                 .await
                 .map_err(|_| RtspError::ConnectionError("Connection timeout".to_string()))?
                 .map_err(|e| {

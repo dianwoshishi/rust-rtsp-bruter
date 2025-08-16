@@ -6,6 +6,7 @@ use std::net::{IpAddr, ToSocketAddrs};
 use std::vec::Vec;
 
 // 定义IP数据源类型
+#[derive(Clone)]
 pub enum IpSource {
     FilePath(String),
     IpString(String),
@@ -32,39 +33,12 @@ impl IpReader<IpSource> {
         }
     }
 
-    // 读取IP地址列表
-    fn read_ips(&self) -> Result<Vec<String>, RtspError> {
-        let ips = match &self.source {
-            IpSource::FilePath(file_path) => {
-                let file = File::open(file_path).map_err(|e| RtspError::IoError(e))?;
-                let reader = BufReader::new(file);
-                let mut ips = Vec::new();
-
-                for line in reader.lines() {
-                    let line = line.map_err(|e| RtspError::IoError(e))?;
-                    let trimmed_line = line.trim();
-                    if trimmed_line.is_empty() {
-                        continue;
-                    }
-                    ips.push(trimmed_line.to_string());
-                }
-
-                ips
-            }
-            IpSource::IpString(ip_string) => {
-                let trimmed_line = ip_string.trim();
-                let mut ips = Vec::new();
-
-                ips.push(trimmed_line.to_string());
-                ips
-            }
-        };
-
+    fn parse_ips(&self, ips: Vec<String>) -> Result<Vec<String>, RtspError> {
         // 使用ip_port_parser解析IP地址（支持带端口格式、CIDR和花括号展开）
         let mut parsed_ips = Vec::new();
         for ip in &ips {
             // 首先尝试使用ip_port_parser解析
-            println!("{}", &ip);
+            // println!("{}", &ip);
 
             match super::ip_port_parser::parse_ip_port(ip) {
                 Ok(ip_ports) => {
@@ -124,6 +98,38 @@ impl IpReader<IpSource> {
             }
         }
         Ok(unique_ips)
+    }
+
+    // 读取IP地址列表
+    fn read_ips(&self) -> Result<Vec<String>, RtspError> {
+        let ips = match &self.source {
+            IpSource::FilePath(file_path) => {
+                let file = File::open(file_path).map_err(|e| RtspError::IoError(e))?;
+                let reader = BufReader::new(file);
+                let mut ips = Vec::new();
+
+                for line in reader.lines() {
+                    let line = line.map_err(|e| RtspError::IoError(e))?;
+                    let trimmed_line = line.trim();
+                    if trimmed_line.is_empty() {
+                        continue;
+                    }
+                    ips.push(trimmed_line.to_string());
+                }
+
+                ips
+            }
+            IpSource::IpString(ip_string) => {
+                let trimmed_line = ip_string.trim();
+                let mut ips = Vec::new();
+
+                ips.push(trimmed_line.to_string());
+                ips
+            }
+        };
+
+        self.parse_ips(ips)
+
     }
 
     // 创建IP地址迭代器

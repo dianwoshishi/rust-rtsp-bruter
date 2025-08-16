@@ -95,6 +95,7 @@ impl BruteForcer {
         }
 
         let start_time = Instant::now();
+
         match RTSP_WORKER_MANAGER
             .auth_request(username, password, &rtsp_url)
             .await

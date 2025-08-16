@@ -110,6 +110,7 @@ impl AppConfig {
     }
 }
 
+/// 从命令行和配置文件加载参数，以命令行为主，配置文件补充
 pub fn load_and_merge_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
     // 解析命令行参数，如果解析失败则使用默认值
     let cli = Cli::try_parse().unwrap_or_else(|e| {

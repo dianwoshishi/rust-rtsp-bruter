@@ -198,12 +198,12 @@ impl RtspWorkerManager {
             sender.clone()
         };
         // 发送认证请求
-        sender
-            .send(RtspMessage::AuthRequest {
+        // 发送给后台的worker进行处理
+        sender.send(RtspMessage::AuthRequest {
                 username: username.to_string(),
                 password: password.to_string(),
                 rtsp_url: rtsp_url.to_string(),
-                response_tx,
+                response_tx, //用于将验证结果传回
             })
             .await
             .map_err(|e| {
