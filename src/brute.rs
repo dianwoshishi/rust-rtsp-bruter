@@ -139,7 +139,10 @@ impl BruteForcer {
 
         let mut found_cred: Option<FoundCredential> = None;
 
-        'cred_loop: for (username, password) in credential_iterator {
+        'cred_loop: for (ref username, ref password) in credential_iterator {
+
+            info!("For IP {}: Trying {}:{}", &ip, &username, &password);
+
             // 为每次迭代克隆必要的变量
             let this_clone_iter = this_clone.clone();
             let ip_clone = ip.clone();
@@ -156,7 +159,8 @@ impl BruteForcer {
                     if this_clone_iter.has_valid_credentials_for_ip(&ip_clone) {
                         debug!(
                             "Skipping IP {}:{} as valid credentials already found",
-                            ip_clone.ip, ip_clone.port
+                            &ip_clone.ip, &ip_clone.port
+
                         );
                         return Ok(None);
                     }
@@ -177,6 +181,8 @@ impl BruteForcer {
                         },
                         Ok(None) => {
                             // 继续尝试下一个凭据
+                            debug!("For IP {}: Failed {}:{}", &ip_clone, &username, &password);
+
                         },
                         Err(e) => {
                             error!("Task failed with error: {:?}", e);
@@ -236,6 +242,9 @@ impl BruteForcer {
                 Err(e) => {
                     error!("IP task panicked: {:?}", e);
                 }
+                //todo 错误信息太多，不便于查看探测结果。
+                // 可以考虑只打印成功的IP地址
+
             }
         }
 

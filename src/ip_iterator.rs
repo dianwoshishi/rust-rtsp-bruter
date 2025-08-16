@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::vec::Vec;
 
 // 存储IP地址和端口信息的结构体
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct IpPortAddr {
     pub ip: IpAddr,
     pub port: u16,

@@ -146,10 +146,15 @@ impl RtspWorkerManager {
                 Ok(AuthenticationResult::NoAuthenticationRequired) => {
                     Ok(Some(("".to_string(), "".to_string())))
                 }
-                Ok(AuthenticationResult::Failed) => Err(RtspError::AuthenticationError(
-                    "Authentication failed".to_string(),
-                )),
-                Err(e) => Err(e),
+                Ok(AuthenticationResult::Failed) => {
+                    Ok(None)
+                }
+                Err(e) => {
+                    Err(RtspError::AuthenticationError(format!(
+                        "Authentication failed: {:?}",
+                        e
+                    )))
+                },
             },
             None => Err(RtspError::ProtocolError(
                 "No response from RTSP worker".to_string(),
