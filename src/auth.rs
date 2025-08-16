@@ -105,10 +105,10 @@ pub fn generate_auth_header(
         }
         AuthType::Digest(info) => {
             // Digest认证
-            let algorithm = info.algorithm.as_deref().unwrap_or("MD5");
-            let cnonce = generate_cnonce();
-            let nc = "00000001";
-            let qop = info.qop.as_deref().unwrap_or("auth");
+            // let algorithm = info.algorithm.as_deref().unwrap_or("MD5");
+            // let cnonce = generate_cnonce();
+            // let nc = "00000001";
+            // let qop = info.qop.as_deref().unwrap_or("auth");
 
             // 计算HA1 = MD5(username:realm:password)
             let ha1_input = format!("{}:{}:{}", username, info.realm, password);
@@ -125,8 +125,8 @@ pub fn generate_auth_header(
 
             // 构建Digest认证头
             let digest_header = format!(
-                "Digest username=\"{}\", realm=\"{}\", nonce=\"{}\", uri=\"{}\", response=\"{}\", algorithm=\"{}\", cnonce=\"{}\", nc={}, qop=\"{}\"",
-                username, info.realm, info.nonce, path, response, algorithm, cnonce, nc, qop
+                "Digest username=\"{}\", realm=\"{}\", nonce=\"{}\", uri=\"{}\", response=\"{}\"",
+                username, info.realm, info.nonce, path, response
             );
 
             Ok(digest_header)
