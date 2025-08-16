@@ -1,5 +1,5 @@
-use crate::client::RtspClient;
-use crate::error::{AuthenticationResult, RtspError};
+use crate::rtsp::client::RtspClient;
+use crate::errors::errors::{AuthenticationResult, RtspError};
 use lazy_static::lazy_static;
 use log::{debug, error, info, trace};
 use std::sync::Arc;

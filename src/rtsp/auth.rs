@@ -1,4 +1,4 @@
-use crate::error::RtspError;
+use crate::errors::errors::RtspError;
 use base64::Engine;
 use md5::{Digest, Md5};
 use rand::Rng;

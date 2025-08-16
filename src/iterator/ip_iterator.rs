@@ -1,4 +1,4 @@
-use crate::error::RtspError;
+use crate::errors::errors::RtspError;
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
 use std::net::IpAddr;

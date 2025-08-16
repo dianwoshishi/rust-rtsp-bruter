@@ -1,4 +1,4 @@
-use crate::error::RtspError;
+use crate::errors::errors::RtspError;
 use clap::Parser;
 use log;
 use std::error::Error;

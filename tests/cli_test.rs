@@ -1,6 +1,6 @@
 use rand::Rng;
-use rust_rtsp_bruter::cli::Cli;
-use rust_rtsp_bruter::cli::parse_brute_args;
+use rust_rtsp_bruter::cli::cli::Cli;
+use rust_rtsp_bruter::cli::cli::parse_brute_args;
 use std::io::Write;
 
 // 临时文件结构体，实现Drop特性自动删除文件

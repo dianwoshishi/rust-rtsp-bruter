@@ -1,4 +1,4 @@
-use rust_rtsp_bruter::auth::{parse_auth_challenge, generate_auth_header, AuthType};
+use rust_rtsp_bruter::rtsp::auth::{parse_auth_challenge, generate_auth_header, AuthType, DigestAuthInfo};
 use md5::Digest;
 
 // 测试Digest认证响应生成
@@ -29,7 +29,7 @@ fn test_digest_auth_response_generation() {
     assert_eq!(response, expected_response);
 
     // 构建Digest认证信息
-    let auth_type = AuthType::Digest(rust_rtsp_bruter::auth::DigestAuthInfo {
+    let auth_type = AuthType::Digest(DigestAuthInfo {
         realm: realm.to_string(),
         nonce: nonce.to_string(),
         qop: None,
@@ -81,8 +81,8 @@ fn test_full_auth_flow_parsing() {
     // 验证认证头包含必要的字段
     assert!(auth_header.starts_with("Digest "));
     assert!(auth_header.contains(&format!("username=\"{}\"", username)));
-    assert!(auth_header.contains(&format!("realm=\"RTSP SERVER\"")));
-    assert!(auth_header.contains(&format!("nonce=\"72fb3f3f23ded5a9d8f9be5a4535bf84\"")));
+    assert!(auth_header.contains(&"realm=\"RTSP SERVER\"".to_string()));
+    assert!(auth_header.contains(&"nonce=\"72fb3f3f23ded5a9d8f9be5a4535bf84\"".to_string()));
     assert!(auth_header.contains(&format!("uri=\"{}\"", path)));
     assert!(auth_header.contains("response=\""));
 }

@@ -4,8 +4,8 @@ extern crate lazy_static;
 use clap::Parser;
 use log::{debug, info};
 use log4rs;
-use rust_rtsp_bruter::cli::{self, handle_cli};
-use rust_rtsp_bruter::rtsp_worker::RTSP_WORKER_MANAGER;
+use rust_rtsp_bruter::cli::cli::{handle_cli, self};
+use rust_rtsp_bruter::rtsp::rtsp_worker::RTSP_WORKER_MANAGER;
 use tokio;
 use std::time::Instant;
 

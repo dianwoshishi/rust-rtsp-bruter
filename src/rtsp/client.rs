@@ -1,6 +1,6 @@
-use crate::auth;
-use crate::common::{build_rtsp_request, parse_sdp_content, read_response, send_request};
-use crate::error::{AuthenticationResult, RtspError};
+use crate::rtsp::auth;
+use crate::rtsp::common::{build_rtsp_request, parse_sdp_content, read_response, send_request};
+use crate::errors::errors::{AuthenticationResult, RtspError};
 use rand::Rng;
 use std::marker::Send;
 use std::pin::Pin;

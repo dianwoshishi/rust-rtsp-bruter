@@ -1,5 +1,5 @@
-use crate::error::RtspError;
-use crate::ip_iterator::IpIterator;
+use crate::errors::errors::RtspError;
+use crate::iterator::ip_iterator::IpIterator;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::net::{IpAddr, ToSocketAddrs};

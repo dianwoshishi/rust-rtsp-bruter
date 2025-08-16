@@ -1,5 +1,5 @@
 use crate::brute::FoundCredential;
-use crate::error::RtspError;
+use crate::errors::errors::RtspError;
 use log::{debug, error, info};
 use std::sync::{Arc, Mutex};
 use tokio::task::JoinHandle;
