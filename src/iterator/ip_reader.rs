@@ -60,26 +60,40 @@ impl IpReader<IpSource> {
             }
         };
 
-        // 解析IP地址（支持带端口格式）
+        // 使用ip_port_parser解析IP地址（支持带端口格式、CIDR和花括号展开）
         let mut parsed_ips = Vec::new();
         for ip in &ips {
-            // 处理带端口的IP地址
-            let parts: Vec<&str> = ip.split(':').collect();
-            let ip_without_port = parts[0].trim();
-            let port = if parts.len() > 1 { parts[1].trim() } else { "" };
+            // 首先尝试使用ip_port_parser解析
+            println!("{}", &ip);
 
-            // 尝试解析IP部分
-            match ip_without_port.parse::<IpAddr>() {
-                Ok(_) => {
-                    // IP部分有效，保留原始格式（包括端口）
-                    parsed_ips.push(ip.clone());
-                }
-                Err(ip_err) => {
-                    // IP部分无效，尝试解析为域名
+            match super::ip_port_parser::parse_ip_port(ip) {
+                Ok(ip_ports) => {
+                    // 解析成功，转换为字符串形式
+                    println!("{:?}", ip_ports);
+
+                    for ip_port in ip_ports {
+                        if ip_port.ports.is_empty() {
+                            parsed_ips.push(ip_port.ip.to_string());
+                        } else {
+                            for port in &ip_port.ports {
+                                parsed_ips.push(format!("{}:{}", ip_port.ip, port));
+                            }
+                        }
+                    }
+                },
+                Err(parse_err) => {
+                    // 解析失败，尝试作为域名处理
+                    // 提取IP部分和端口部分
+                    let (ip_without_port, port) = if ip.contains(':') {
+                        let parts: Vec<&str> = ip.splitn(2, ':').collect();
+                        (parts[0].trim(), parts[1].trim())
+                    } else {
+                        (ip.trim(), "")
+                    };
+
                     match (ip_without_port, 0).to_socket_addrs() {
                         Ok(mut addrs) => {
                             if let Some(addr) = addrs.next() {
-                                // 对于域名，使用解析后的IP地址，并保留原始端口
                                 let ip_with_port = if !port.is_empty() {
                                     format!("{}:{}", addr.ip().to_string(), port)
                                 } else {
@@ -88,23 +102,28 @@ impl IpReader<IpSource> {
                                 parsed_ips.push(ip_with_port);
                             } else {
                                 return Err(RtspError::InvalidIpAddress(format!(
-                                    "Invalid IP address: {}. Error: No address found for domain",
-                                    ip
+                                    "Invalid IP address: {}. Error: No address found for domain and parsing failed: {:?}",
+                                    ip, parse_err
                                 )));
                             }
-                        }
+                        },
                         Err(dns_err) => {
                             return Err(RtspError::InvalidIpAddress(format!(
-                                "Invalid IP address: {}. IP parse error: {:?}, DNS error: {:?}",
-                                ip, ip_err, dns_err
+                                "Invalid IP address: {}. Parsing error: {:?}, DNS error: {:?}",
+                                ip, parse_err, dns_err
                             )));
                         }
                     }
                 }
             }
         }
-
-        Ok(parsed_ips)
+        let mut unique_ips = Vec::new();
+        for ip in parsed_ips {
+            if !unique_ips.contains(&ip) {
+                unique_ips.push(ip);
+            }
+        }
+        Ok(unique_ips)
     }
 
     // 创建IP地址迭代器

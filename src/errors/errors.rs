@@ -2,6 +2,58 @@ use std::error::Error as StdError;
 use std::fmt;
 use std::io;
 
+/// 定义结果类型别名
+pub type Result<T> = std::result::Result<T, ParseError>;
+
+/// 解析错误类型
+#[derive(Debug)]
+pub enum ParseError {
+    /// 无效的IP段格式
+    InvalidIpSegmentFormat(String),
+    /// 无效的IP段范围
+    InvalidIpSegmentRange(u8, u8),
+    /// 空的IP段
+    EmptyIpSegment,
+    /// 无效的CIDR格式
+    InvalidCidrFormat(String),
+    /// 无效的CIDR值
+    InvalidCidrValue(String),
+    /// 无效的IP格式
+    InvalidIpFormat(String),
+    /// 无效的端口范围格式
+    InvalidPortRangeFormat(String),
+    /// 无效的端口号
+    InvalidPortNumber(String),
+    /// 无效的端口范围
+    InvalidPortRange(u16, u16),
+    /// 空的端口规范
+    EmptyPortSpec,
+    /// 无效的IP端口格式
+    InvalidIpPortFormat(String),
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ParseError::InvalidIpSegmentFormat(s) => write!(f, "Invalid IP segment format: {}", s),
+            ParseError::InvalidIpSegmentRange(start, end) => write!(f, "Invalid IP segment range: {}-{}", start, end),
+            ParseError::EmptyIpSegment => write!(f, "Empty IP segment"),
+            ParseError::InvalidCidrFormat(s) => write!(f, "Invalid CIDR format: {}", s),
+            ParseError::InvalidCidrValue(s) => write!(f, "Invalid CIDR value: {}", s),
+            ParseError::InvalidIpFormat(s) => write!(f, "Invalid IP format: {}", s),
+            ParseError::InvalidPortRangeFormat(s) => write!(f, "Invalid port range format: {}", s),
+            ParseError::InvalidPortNumber(s) => write!(f, "Invalid port number: {}", s),
+            ParseError::InvalidPortRange(start, end) => write!(f, "Invalid port range: {}-{}", start, end),
+            ParseError::EmptyPortSpec => write!(f, "Empty port specification"),
+            ParseError::InvalidIpPortFormat(s) => write!(f, "Invalid IP:port format: {}", s),
+        }
+    }
+}
+
+impl Error for ParseError {}
+
+use std::error::Error;
+
 // 定义认证结果类型
 #[derive(Debug)]
 pub enum AuthenticationResult {
@@ -44,8 +96,6 @@ impl fmt::Display for RtspError {
         }
     }
 }
-
-use std::error::Error;
 
 impl Error for RtspError {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
