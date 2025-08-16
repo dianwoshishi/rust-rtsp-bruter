@@ -40,18 +40,18 @@ impl RtspClient {
     }
 
     // 随机选择一个User-Agent
-    fn select_random_user_agent(&self) -> &'static str {
+    pub fn select_random_user_agent(&self) -> &'static str {
         let user_agent = {
             let mut rng = rand::thread_rng();
             let random_index = rng.r#gen_range(0..USER_AGENTS.len());
             USER_AGENTS[random_index]
         };
-        log::debug!("Selected User-Agent: {}", user_agent);
+        log::trace!("Selected User-Agent: {}", user_agent);
         user_agent
     }
 
     // 构建RTSP请求的辅助方法
-    fn build_request(
+    pub fn build_request(
         &self,
         method: &str,
         host: &str,
@@ -86,7 +86,7 @@ impl RtspClient {
     }
 
     // 发送请求并处理响应的通用方法
-    fn send_and_process_request<'a>(
+    pub fn send_and_process_request<'a>(
         &'a self,
         stream: &'a mut TcpStream,
         request: &'a str,
@@ -252,38 +252,38 @@ mod tests {
     use tokio::test;
 
     // 测试成功连接到不需要认证的RTSP服务器
-    #[test]
-    async fn test_describe_no_auth() {
-        // 注意：这个测试需要一个真实的不需要认证的RTSP服务器
-        // 在实际运行测试前，你可能需要修改这个URL
-        let url = "rtsp://211.79.64.12:554"; 
-        let client = RtspClient::new("", "");
+    // #[test]
+    // async fn test_describe_no_auth() {
+    //     // 注意：这个测试需要一个真实的不需要认证的RTSP服务器
+    //     // 在实际运行测试前，你可能需要修改这个URL
+    //     let url = "rtsp://211.79.64.12:554"; 
+    //     let client = RtspClient::new("", "");
 
-        let result = client.describe(url).await;
-        assert!(result.is_ok());
-        let auth_result = result.unwrap();
-        match auth_result {
-            AuthenticationResult::NoAuthenticationRequired => {}
-            _ => panic!("Expected Success, got {:?}", auth_result)
-        }
-    }
+    //     let result = client.describe(url).await;
+    //     assert!(result.is_ok());
+    //     let auth_result = result.unwrap();
+    //     match auth_result {
+    //         AuthenticationResult::NoAuthenticationRequired => {}
+    //         _ => panic!("Expected Success, got {:?}", auth_result)
+    //     }
+    // }
 
-    // 测试连接到需要认证的RTSP服务器但提供错误凭据，预期认证失败
-    #[test]
-    async fn test_describe_auth_failed() {
-        // 注意：这个测试需要一个真实的需要认证的RTSP服务器
-        // 在实际运行测试前，你可能需要修改这个URL和凭据
-        let url = "rtsp://119.49.2.87:554";
-        let client = RtspClient::new("invalid_user", "invalid_password");
+    // // 测试连接到需要认证的RTSP服务器但提供错误凭据，预期认证失败
+    // #[test]
+    // async fn test_describe_auth_failed() {
+    //     // 注意：这个测试需要一个真实的需要认证的RTSP服务器
+    //     // 在实际运行测试前，你可能需要修改这个URL和凭据
+    //     let url = "rtsp://119.49.2.87:554";
+    //     let client = RtspClient::new("invalid_user", "invalid_password");
 
-        let result = client.describe(url).await;
-        assert!(result.is_ok());
-        let auth_result = result.unwrap();
-        match auth_result {
-            AuthenticationResult::Failed => {}
-            _ => panic!("Expected Failed, got {:?}", auth_result),
-        }
-    }
+    //     let result = client.describe(url).await;
+    //     assert!(result.is_ok());
+    //     let auth_result = result.unwrap();
+    //     match auth_result {
+    //         AuthenticationResult::Failed => {}
+    //         _ => panic!("Expected Failed, got {:?}", auth_result),
+    //     }
+    // }
 
     // // 测试连接到需要认证的RTSP服务器但提供错误凭据
     // #[test]

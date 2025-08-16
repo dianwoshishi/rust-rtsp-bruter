@@ -2,7 +2,7 @@
 
 # Set the root logger to debug level
 root:
-  level: debug
+  level: trace
   appenders: [terminal, file]
 
 appenders:
@@ -23,7 +23,7 @@ appenders:
       pattern: "{d(%Y-%m-%d %H:%M:%S%.3f)} [{t}] [{l}] {m}{n}"
     filters:
       - kind: threshold
-        level: debug
+        level: trace
     policy:
       kind: compound
       trigger:

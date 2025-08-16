@@ -119,7 +119,7 @@ pub fn generate_auth_header(
 
             // 计算response = MD5(ha1:nonce:nc:cnonce:qop:ha2)
             let response_input =
-                format!("{}:{}:{}:{}:{}:{}", ha1, info.nonce, nc, cnonce, qop, ha2);
+                format!("{}:{}:{}", ha1, info.nonce, ha2);
             let response = format!("{:x}", Md5::digest(response_input.as_bytes()));
 
             // 构建Digest认证头
@@ -142,3 +142,5 @@ pub fn generate_cnonce() -> String {
     let random_bytes: [u8; 16] = rng.r#gen();
     format!("{:x}", Md5::digest(&random_bytes))
 }
+
+

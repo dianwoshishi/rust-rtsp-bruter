@@ -32,7 +32,7 @@ pub fn build_rtsp_request(
 
 // 发送RTSP请求
 pub async fn send_request(stream: &mut TcpStream, request: &str) -> Result<(), RtspError> {
-    log::debug!("Sending RTSP request:\n{}", request.replace("\r\n", "\n"));
+    log::trace!("Sending RTSP request:\n{}", request.replace("\r\n", "\n"));
     // 发送请求，设置10秒超时
     time::timeout(
         std::time::Duration::from_secs(10),
