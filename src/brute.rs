@@ -116,7 +116,7 @@ impl BruteForcer {
         let mut found_credentials = self.found_credentials.lock().unwrap();
         if found_credentials.insert(credential.clone()) {
             info!("{}", credential);
-            println!("{}", credential);
+            // println!("{}", credential);
         }
     }
 
@@ -168,8 +168,8 @@ impl BruteForcer {
                     // 尝试凭据
                     let result = this_clone_iter.try_credentials(&username, &password, &ip_clone).await;
 
-                    // 延迟下一次尝试
-                    sleep(Duration::from_millis(delay_clone)).await;
+                    // // 延迟下一次尝试
+                    // sleep(Duration::from_millis(delay_clone)).await;
 
                     result
                 } => {

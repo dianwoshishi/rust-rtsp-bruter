@@ -1,0 +1,124 @@
+OPTIONS rtsp://60.243.26.171:555 RTSP/1.0
+CSeq: 2
+User-Agent: LibVLC/3.0.20 (LIVE555 Streaming Media v2016.11.28)
+
+
+RTSP/1.0 200 OK
+Server: Customer RTSP Server/1.0.0
+CSeq: 2
+Public: OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, GET_PARAMETER, SET_PARAMETER
+
+
+DESCRIBE rtsp://60.243.26.171:555 RTSP/1.0
+CSeq: 3
+User-Agent: LibVLC/3.0.20 (LIVE555 Streaming Media v2016.11.28)
+Accept: application/sdp
+
+
+RTSP/1.0 401 Unauthorized
+CSeq: 3
+Date: Sat, Aug 16 2025 01:19:15 GMT
+Expires: Sat, Aug 16 2025 01:19:15 GMT
+WWW-Authenticate: Digest realm="RTSP SERVER", nonce="72fb3f3f23ded5a9d8f9be5a4535bf84", stale="FALSE"
+
+
+DESCRIBE rtsp://60.243.26.171:555 RTSP/1.0
+CSeq: 4
+Authorization: Digest username="admin", realm="RTSP SERVER", nonce="72fb3f3f23ded5a9d8f9be5a4535bf84", uri="rtsp://60.243.26.171:555", response="bacab71a291d142b597913dc07633ea6"
+User-Agent: LibVLC/3.0.20 (LIVE555 Streaming Media v2016.11.28)
+Accept: application/sdp
+
+
+RTSP/1.0 200 OK
+Server: Customer RTSP Server/1.0.0
+CSeq: 4
+Last-Modified: Mon Aug  2 16:29:17 2021 GMT
+Cache-Control: must-revalidate
+Date: Sat, Aug 16 2025 01:19:15 GMT
+Expires: Sat, Aug 16 2025 01:19:15 GMT
+Content-Type: application/sdp
+x-Accept-Retransmit: our-retransmit
+x-Accept-Dynamic-Rate: 1
+Content-Length: 509
+Content-Base: rtsp://60.243.26.171:555/profile1/
+
+v=0
+o=- 1755307155624614 1 IN IP4 192.168.1.32
+s=profile1
+u=http:///
+e=admin@
+t=0 0
+a=control:*
+a=range:npt=00.000- 
+m=video 0 RTP/AVP 98
+b=AS:5000
+a=control:track1
+a=rtpmap:98 H265/90000
+a=recvonly
+a=fmtp:98 profile-space=0;profile-id=1;tier-flag=1;level-id=0;sprop-vps=QAEMAf//IWAAAAMAAAMAAAMAAAMAlqwJ;sprop-sps=QgEBIWAAAAMAAAMAAAMAAAMAlqADwIARB8uStO8ku5uAgICCACD1gAM3+YAQ;sprop-pps=RAHAcvA7JA==;
+m=audio 0 RTP/AVP 8
+b=AS:1000
+a=control:track2
+a=rtpmap:8 pcma/8000
+a=ptime:40
+a=recvonly
+
+SETUP rtsp://60.243.26.171:555/profile1/track1 RTSP/1.0
+CSeq: 5
+Authorization: Digest username="admin", realm="RTSP SERVER", nonce="72fb3f3f23ded5a9d8f9be5a4535bf84", uri="rtsp://60.243.26.171:555/profile1/", response="3ddf9f9a381021fd9d04497541262e55"
+User-Agent: LibVLC/3.0.20 (LIVE555 Streaming Media v2016.11.28)
+Transport: RTP/AVP;unicast;client_port=55490-55491
+
+
+RTSP/1.0 200 OK
+Server: Customer RTSP Server/1.0.0
+CSeq: 5
+Last-Modified: Mon Aug  2 16:29:17 2021 GMT
+Cache-Control: must-revalidate
+Date: Sat, Aug 16 2025 01:19:16 GMT
+Expires: Sat, Aug 16 2025 01:19:16 GMT
+Transport: RTP/AVP;unicast;destination=::ffff:116.169.10.97;source=60.243.26.171;client_port=55490-55491;server_port=20004-20005;ssrc=21af5c13
+Session: 702776290112734;timeout=60
+
+
+SETUP rtsp://60.243.26.171:555/profile1/track2 RTSP/1.0
+CSeq: 6
+Authorization: Digest username="admin", realm="RTSP SERVER", nonce="72fb3f3f23ded5a9d8f9be5a4535bf84", uri="rtsp://60.243.26.171:555/profile1/", response="3ddf9f9a381021fd9d04497541262e55"
+User-Agent: LibVLC/3.0.20 (LIVE555 Streaming Media v2016.11.28)
+Transport: RTP/AVP;unicast;client_port=55492-55493
+Session: 702776290112734
+
+
+RTSP/1.0 200 OK
+Server: Customer RTSP Server/1.0.0
+CSeq: 6
+Last-Modified: Mon Aug  2 16:29:17 2021 GMT
+Cache-Control: must-revalidate
+Date: Sat, Aug 16 2025 01:19:16 GMT
+Expires: Sat, Aug 16 2025 01:19:16 GMT
+Transport: RTP/AVP;unicast;destination=::ffff:116.169.10.97;source=60.243.26.171;client_port=55492-55493;server_port=20006-20007;ssrc=5658cfb5
+Session: 702776290112734;timeout=60
+
+
+PLAY rtsp://60.243.26.171:555/profile1/ RTSP/1.0
+CSeq: 7
+Authorization: Digest username="admin", realm="RTSP SERVER", nonce="72fb3f3f23ded5a9d8f9be5a4535bf84", uri="rtsp://60.243.26.171:555/profile1/", response="21a18b104c3f0ff8b828fbdfeff84739"
+User-Agent: LibVLC/3.0.20 (LIVE555 Streaming Media v2016.11.28)
+Session: 702776290112734
+Range: npt=0.000-
+
+
+RTSP/1.0 200 OK
+Server: Customer RTSP Server/1.0.0
+CSeq: 7
+Session: 702776290112734
+Range: npt=0.000- 
+RTP-Info: url=rtsp://60.243.26.171:555/profile1/track1;seq=50967;rtptime=1790150058,url=rtsp://60.243.26.171:555/profile1/track2;seq=57746;rtptime=661372276
+
+
+TEARDOWN rtsp://60.243.26.171:555/profile1/ RTSP/1.0
+CSeq: 8
+Authorization: Digest username="admin", realm="RTSP SERVER", nonce="72fb3f3f23ded5a9d8f9be5a4535bf84", uri="rtsp://60.243.26.171:555/profile1/", response="e1ffe4fc2afbb759eb9aa9fd70a7a3a4"
+User-Agent: LibVLC/3.0.20 (LIVE555 Streaming Media v2016.11.28)
+Session: 702776290112734
+
