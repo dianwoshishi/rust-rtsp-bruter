@@ -27,18 +27,19 @@ pub fn parse_auth_challenge(response: &str) -> Result<AuthType, RtspError> {
     for line in response.lines() {
         if let Some(auth_header) = line.strip_prefix("WWW-Authenticate: ") {
             let auth_str = auth_header.trim();
+            // 同时存在时，优先使用Digest认证
 
-            if auth_str.starts_with("Basic ") {
-                log::debug!("Basic authentication required");
-                return Ok(AuthType::Basic(()));
-            } else if auth_str.starts_with("Digest ") {
+            if auth_str.starts_with("Digest ") {
                 let digest_info = parse_digest_challenge(&auth_str["Digest ".len()..])?;
                 log::debug!(
                     "Digest authentication required, realm: {}",
                     digest_info.realm
                 );
                 return Ok(AuthType::Digest(digest_info));
-            }
+            }else if auth_str.starts_with("Basic ") {
+                log::debug!("Basic authentication required");
+                return Ok(AuthType::Basic(()));
+            } 
         }
     }
 
