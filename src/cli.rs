@@ -2,12 +2,15 @@ use crate::error::RtspError;
 use clap::Parser;
 use log;
 use std::error::Error;
+use std::sync::Arc;
 // use url::Url;  // 未使用的导入，已注释
 use crate::ip_reader::{IpReader, IpSource};
 
 use crate::credential_iterator::CredentialIterator;
 use crate::credential_reader::{CredentialReader, CredentialSource};
 use crate::ip_iterator::IpIterator;
+use crate::brute::brute_forcer::BruteForcer;
+
 
 // 定义命令行参数
 #[derive(Parser, Debug)]
@@ -126,11 +129,11 @@ pub async fn handle_cli(cli: Cli) -> Result<(), Box<dyn Error>> {
     let (ip_iterator, cred_iterator, max_concurrent) = parse_brute_args(cli)?;
 
     // 创建暴力枚举器
-    let brute_forcer = crate::brute::BruteForcer::new()
+    let brute_forcer = Arc::new(BruteForcer::new()
         .with_max_concurrent(max_concurrent)
         // .with_delay(delay)
         .with_ip_iterator(ip_iterator)
-        .with_cred_iterator(cred_iterator);
+        .with_cred_iterator(cred_iterator));
 
     // 执行暴力枚举
     log::debug!("Starting brute force attack");
