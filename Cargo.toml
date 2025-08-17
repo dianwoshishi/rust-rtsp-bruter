@@ -3,11 +3,19 @@ name = "rust-rtsp-bruter"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+path = "src/lib.rs"
+
 [[example]]
 name = "ip_port_parser_example"
 path = "examples/ip_port_parser_example.rs"
 
+[[example]]
+name = "macro_example"
+path = "examples/macro_example.rs"
+
 [dependencies]
+timing-macro = { path = "./timing-macro" }
 clap = { version = "4.4", features = ["derive"] }
 rstest = "0.18"
 base64 = "0.21"
@@ -24,3 +32,4 @@ lazy_static = "1.4"
 tempfile = "3.20.0"
 serde = "1.0.219"
 toml = "0.9.5"
+colored = "2.0.4"

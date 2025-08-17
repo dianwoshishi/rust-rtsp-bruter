@@ -1,8 +1,29 @@
 use crate::errors::errors::RtspError;
 use chrono::Utc;
+use rand::Rng;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time;
+
+
+// 随机User-Agent列表
+const USER_AGENTS: &[&str] = &[
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36",
+];
+// 随机选择一个User-Agent
+pub fn select_random_user_agent() -> &'static str {
+    let user_agent = {
+        let mut rng = rand::thread_rng();
+        let random_index = rng.r#gen_range(0..USER_AGENTS.len());
+        USER_AGENTS[random_index]
+    };
+    log::trace!("Selected User-Agent: {}", user_agent);
+    user_agent
+}
 
 // 构建RTSP请求
 pub fn build_rtsp_request(
@@ -11,7 +32,6 @@ pub fn build_rtsp_request(
     host: &str,
     port: u16,
     cseq: u32,
-    user_agent: &str,
     auth_header: Option<&str>,
 ) -> String {
     let date = Utc::now().format("%a, %d %b %Y %H:%M:%S GMT").to_string();
@@ -19,7 +39,7 @@ pub fn build_rtsp_request(
         + &format!("CSeq: {}\r\n", cseq)
         + &format!("Host: {}:{}\r\n", host, port)
         + &format!("Date: {}\r\n", date)
-        + &format!("User-Agent: {}\r\n", user_agent)
+        + &format!("User-Agent: {}\r\n", select_random_user_agent())
         + &format!("Accept: application/sdp\r\n")
         + &format!("Transport: RTP/AVP;unicast;client_port=8000-8001\r\n");
 
@@ -79,17 +99,11 @@ pub async fn read_response(stream: &mut TcpStream) -> Result<String, RtspError> 
 }
 
 // 解析SDP内容
-pub fn parse_sdp_content(response: &str, auth_success: bool) {
+pub fn parse_sdp_content(response: &str) {
     if let Some(sdp_start) = response.find("\r\n\r\n") {
         let sdp_content = &response[sdp_start + 4..];
         log::debug!("Received SDP content:\n{}", sdp_content);
-        if auth_success {
-            println!("Success: Received media description (SDP)");
-        } else {
-            println!("Success: Received media description (SDP) - no authentication required");
-        }
     } else {
-        log::info!("No SDP content found in response");
-        println!("Warning: No media description (SDP) found in response");
+        log::debug!("No SDP content found in response. Response: {}", response);
     }
 }

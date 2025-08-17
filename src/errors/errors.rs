@@ -36,14 +36,18 @@ impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ParseError::InvalidIpSegmentFormat(s) => write!(f, "Invalid IP segment format: {}", s),
-            ParseError::InvalidIpSegmentRange(start, end) => write!(f, "Invalid IP segment range: {}-{}", start, end),
+            ParseError::InvalidIpSegmentRange(start, end) => {
+                write!(f, "Invalid IP segment range: {}-{}", start, end)
+            }
             ParseError::EmptyIpSegment => write!(f, "Empty IP segment"),
             ParseError::InvalidCidrFormat(s) => write!(f, "Invalid CIDR format: {}", s),
             ParseError::InvalidCidrValue(s) => write!(f, "Invalid CIDR value: {}", s),
             ParseError::InvalidIpFormat(s) => write!(f, "Invalid IP format: {}", s),
             ParseError::InvalidPortRangeFormat(s) => write!(f, "Invalid port range format: {}", s),
             ParseError::InvalidPortNumber(s) => write!(f, "Invalid port number: {}", s),
-            ParseError::InvalidPortRange(start, end) => write!(f, "Invalid port range: {}-{}", start, end),
+            ParseError::InvalidPortRange(start, end) => {
+                write!(f, "Invalid port range: {}-{}", start, end)
+            }
             ParseError::EmptyPortSpec => write!(f, "Empty port specification"),
             ParseError::InvalidIpPortFormat(s) => write!(f, "Invalid IP:port format: {}", s),
         }
@@ -72,8 +76,8 @@ pub enum RtspError {
     Cancelled,
     // URL解析错误
     UrlParseError,
-
-    // 连接错误
+    // 超时错误
+    TimeoutError(String),
     ConnectionError(String),
     IoError(io::Error),
     AuthenticationError(String),
@@ -93,6 +97,7 @@ impl fmt::Display for RtspError {
             RtspError::InvalidIpAddress(e) => write!(f, "Invalid IP address: {}", e),
             RtspError::InvalidArgument(e) => write!(f, "Invalid argument: {}", e),
             RtspError::Cancelled => write!(f, "Operation cancelled"),
+            RtspError::TimeoutError(e) => write!(f, "Timeout error: {}", e),
         }
     }
 }
@@ -112,3 +117,9 @@ impl From<io::Error> for RtspError {
         RtspError::IoError(error)
     }
 }
+
+// impl From<tokio::time::error::Elapsed> for RtspError {
+//     fn from(error: tokio::time::error::Elapsed) -> Self {
+//         RtspError::TimeoutError(error.to_string())
+//     }
+// }
