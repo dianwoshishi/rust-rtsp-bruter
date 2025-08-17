@@ -2,7 +2,7 @@ use crate::errors::errors::RtspError;
 use crate::iterator::ip_iterator::IpIterator;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::net::{IpAddr, ToSocketAddrs};
+use std::net::{ToSocketAddrs};
 use std::vec::Vec;
 
 // 定义IP数据源类型

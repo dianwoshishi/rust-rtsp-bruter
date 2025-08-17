@@ -1,5 +1,5 @@
 use rstest::rstest;
-use rust_rtsp_bruter::iterator::ip_port_parser::{IpPort, parse_ip_port};
+use rust_rtsp_bruter::iterator::ip_port_parser::{parse_ip_port};
 use std::net::{IpAddr, Ipv4Addr};
 
 /// 测试单个IP地址解析

@@ -99,17 +99,11 @@ pub async fn read_response(stream: &mut TcpStream) -> Result<String, RtspError> 
 }
 
 // 解析SDP内容
-pub fn parse_sdp_content(response: &str, auth_success: bool) {
+pub fn parse_sdp_content(response: &str) {
     if let Some(sdp_start) = response.find("\r\n\r\n") {
         let sdp_content = &response[sdp_start + 4..];
         log::debug!("Received SDP content:\n{}", sdp_content);
-        if auth_success {
-            println!("Success: Received media description (SDP)");
-        } else {
-            println!("Success: Received media description (SDP) - no authentication required");
-        }
     } else {
-        log::info!("No SDP content found in response");
-        println!("Warning: No media description (SDP) found in response");
+        log::debug!("No SDP content found in response. Response: {}", response);
     }
 }

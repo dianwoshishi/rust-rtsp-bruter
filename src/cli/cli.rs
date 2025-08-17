@@ -1,5 +1,5 @@
 use crate::errors::errors::RtspError;
-use log;
+use log::{self};
 use std::error::Error;
 use std::sync::Arc;
 // use url::Url;  // 未使用的导入，已注释
@@ -73,7 +73,7 @@ pub async fn handle_cli(cli: Cli) -> Result<(), Box<dyn Error>> {
     // 从配置中获取ip，（用户名，密码）列表，接下来用于生成rtsp任务，验证ip端口和密码
     let (ip_iterator, cred_iterator, max_concurrent) = parse_brute_args(cli)?;
 
-    // 创建暴力枚举器
+    // 从配置中获取ip，（用户名，密码）列表，接下来用于生成rtsp任务，验证ip端口和密码
     let brute_forcer = Arc::new(
         BruteForcer::new()
             .with_max_concurrent(max_concurrent)

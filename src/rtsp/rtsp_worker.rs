@@ -1,7 +1,7 @@
 use crate::errors::errors::{AuthenticationResult, RtspError};
 use crate::rtsp::client::RtspClient;
 use lazy_static::lazy_static;
-use log::{debug, error, info, trace};
+use log::{debug, error, trace};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::{Mutex, mpsc};
@@ -117,7 +117,7 @@ impl RtspWorkerManager {
                 .map(|n| n.get() as u32)
                 .unwrap_or(4)
         });
-        info!("RTSP worker pool with {} workers created", count);
+        debug!("RTSP worker pool with {} workers created", count);
 
         let mut senders = Vec::new();
         let mut workers = Vec::new();
@@ -154,7 +154,7 @@ impl RtspWorkerManager {
         }
 
         *running = true;
-        info!(
+        debug!(
             "RTSP worker pool with {} workers started",
             self.worker_count
         );

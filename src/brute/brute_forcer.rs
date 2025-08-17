@@ -6,6 +6,8 @@ use crate::rtsp::rtsp_worker::RTSP_WORKER_MANAGER;
 use log::{debug, error, info, trace};
 use std::collections::HashSet;
 use std::fmt::Display;
+use colored::*;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use tokio::sync::Semaphore;
@@ -23,13 +25,26 @@ impl Display for FoundCredential {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Found credentials for {}: {}:{}",
+            "{} with {}:{}",
             self.ip_port, self.username, self.password
         )
     }
 }
 
+impl FoundCredential {
+    /// 返回带颜色的字符串表示，用于终端输出
+    pub fn to_colored_string(&self) -> String {
+        format!(
+            "{} with {}:{}",
+            self.ip_port.to_string().cyan(),
+            self.username.to_string().green(),
+            self.password.to_string().yellow()
+        )
+    }
+}
+
 /// 暴力枚举器 - 负责创建和管理暴力破解任务
+#[derive(Clone)]
 pub struct BruteForcer {
     credential_iterator: CredentialIterator,
     ip_iterator: IpIterator,
@@ -52,18 +67,24 @@ impl BruteForcer {
 
     /// 设置凭据迭代器
     pub fn with_cred_iterator(mut self, credential_iterator: CredentialIterator) -> Self {
+        info!(
+            "Total credential combinations: {}",
+            credential_iterator.clone().count()
+        );
         self.credential_iterator = credential_iterator;
         self
     }
 
     /// 设置IP迭代器
     pub fn with_ip_iterator(mut self, ip_iterator: IpIterator) -> Self {
+        info!("Total IP:ports to scan: {}", ip_iterator.clone().count());
         self.ip_iterator = ip_iterator;
         self
     }
 
     /// 设置最大并发数
     pub fn with_max_concurrent(mut self, max_concurrent: u32) -> Self {
+        info!("Max concurrent attempts: {}", &max_concurrent);
         self.max_concurrent = max_concurrent;
         self.task_manager = TaskManager::new(max_concurrent);
         self
@@ -137,7 +158,9 @@ impl BruteForcer {
     pub fn add_found_credential(&self, credential: FoundCredential) {
         let mut found_credentials = self.found_credentials.lock().unwrap();
         if found_credentials.insert(credential.clone()) {
-            info!("{}", credential);
+            // 日志中使用原始字符串，终端输出使用带颜色的字符串
+            debug!("Found credential: {}", credential);
+            println!("Found credential: {}", credential.to_colored_string());
         }
     }
 
@@ -148,17 +171,9 @@ impl BruteForcer {
     }
 
     /// 执行暴力枚举
-    pub async fn brute_force(self: Arc<Self>) -> Result<(), RtspError> {
+    pub async fn brute_force(&self) -> Result<(), RtspError> {
         let start_time = Instant::now();
-        info!("Max concurrent attempts: {}", self.max_concurrent);
-        info!("Total IP:ports to scan: {}", self.ip_iterator.clone().count());
-        info!(
-            "Total credential combinations: {}",
-            self.credential_iterator.clone().count()
-        );
 
-        let total_tasks = self.ip_iterator.clone().count() * self.credential_iterator.clone().count();
-        info!("Total tasks to create: {}", total_tasks);
         let mut tasks = Vec::new();
 
         // 创建信号量限制并发数
@@ -177,59 +192,101 @@ impl BruteForcer {
             }));
         }
 
+        let total_tasks = Arc::new(AtomicUsize::new(0));
+
         // 为每个成功连接的IP创建凭据尝试任务
         let mut ip_idx = 0;
         for connect_task in connect_tasks {
-            match connect_task.await {
-                // 只有成功连接的IP才创建任务
-
-                Ok((ip, true)) => {
-                    debug!("Successfully connected to {}", ip);
-
-                    for (cred_idx, (username, password)) in self.credential_iterator.clone().enumerate() {
-                        // 提前获取信号量许可
-                        let permit = semaphore.clone().acquire_owned().await.unwrap();
-                        let this_clone = self.clone();
-                        let ip_clone = ip.clone();
-                        let username_clone = username.clone();
-                        let password_clone = password.clone();
-                        let task_idx = ip_idx * self.credential_iterator.clone().count() + cred_idx;
-
-                        trace!("Creating task {} of {}", task_idx + 1, total_tasks);
-                        let task = tokio::spawn(async move {
-                            let _permit = permit;
-                            trace!(
-                                "Task {} started on thread {:?}",
-                                task_idx + 1,
-                                thread::current().id()
-                            );
-                            let result = this_clone
-                                .try_credentials(&username_clone, &password_clone, &ip_clone)
-                                .await;
-                            trace!("Task {} completed", task_idx + 1);
-                            result
-                        });
-                        tasks.push(task);
-                    }
-                },
-                Ok((ip, false)) => {
-                    debug!("Failed to connect to {}. Skip credentials.", &ip);
-
-                    // println!("Failed to connect to {}", &ip);
-                },
-                Err(e) => {
-                    error!("Connection task failed: {:?}", e);
-                }
-            }
+            let this_clone = Arc::new(self.clone());
+            this_clone.process_connect_task(
+                connect_task,
+                &semaphore,
+                &total_tasks,
+                &mut tasks,
+                ip_idx
+            ).await;
             ip_idx += 1;
         }
 
         info!("All tasks created. Waiting for completion...");
         // 等待所有任务完成并处理结果
-        self.task_manager
+        let (total, successful, duration) = self.task_manager
             .process_task_results(tasks, start_time, total_tasks)
             .await;
+        let _ = (total, successful, duration);
 
+        self.print_summary();
         Ok(())
+    }
+
+    /// 处理单个连接任务的结果
+    async fn process_connect_task(
+        &self,
+        connect_task: tokio::task::JoinHandle<(IpPortAddr, bool)>,
+        semaphore: &Arc<Semaphore>,
+        total_tasks: &Arc<AtomicUsize>,
+        tasks: &mut Vec<tokio::task::JoinHandle<Result<Option<FoundCredential>, RtspError>>>,
+        ip_idx: usize
+    ) {
+        match connect_task.await {
+            // 只有成功连接的IP才创建任务
+
+            Ok((ip, true)) => {
+                debug!("Successfully connected to {}", ip);
+                let cred_size = self.credential_iterator.clone().count();
+
+                total_tasks.fetch_add(cred_size, Ordering::Relaxed);
+                for (cred_idx, (username, password)) in self.credential_iterator.clone().enumerate() {
+                    // 提前获取信号量许可
+                    let permit = semaphore.clone().acquire_owned().await.unwrap();
+                    let this_clone = Arc::new((*self).clone());
+                    let ip_clone = ip.clone();
+                    let username_clone = username.clone();
+                    let password_clone = password.clone();
+                    let task_idx = ip_idx * self.credential_iterator.clone().count() + cred_idx;
+
+                    let task = tokio::spawn(async move {
+                        let _permit = permit;
+                        trace!(
+                            "Task {} started on thread {:?}",
+                            task_idx + 1,
+                            thread::current().id()
+                        );
+                        let result = this_clone
+                            .try_credentials(&username_clone, &password_clone, &ip_clone)
+                            .await;
+                        trace!("Task {} completed", task_idx + 1);
+                        result
+                    });
+                    tasks.push(task);
+                }
+            },
+            Ok((ip, false)) => {
+                debug!("Failed to connect to {}. Skip credentials.", &ip);
+            },
+            Err(e) => {
+                error!("Connection task failed: {:?}", e);
+            }
+        }
+    }
+
+    /// 打印暴力破解的总结信息
+    fn print_summary(&self) {
+        let found_credentials = self.found_credentials.lock().unwrap();
+        println!();
+        if found_credentials.is_empty() {
+            info!("No valid credentials found.");
+        } else {
+            info!("{}Final Summary{}", "-".repeat(10), "-".repeat(10));
+
+            info!("Total found credentials: {}", found_credentials.len());
+            
+            println!("\n{}\n", "Valid credentials found:".green());
+            for cred in found_credentials.iter() {
+                // 日志中使用原始字符串，终端输出使用带颜色的字符串
+                debug!("{}", cred);
+                println!("- {}", cred.to_colored_string());
+            }
+        }
     }
 }

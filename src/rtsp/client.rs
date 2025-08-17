@@ -2,14 +2,12 @@ use crate::errors::errors::{AuthenticationResult, RtspError};
 use crate::iterator::ip_iterator::IpPortAddr;
 use crate::rtsp::auth;
 use crate::rtsp::common::{build_rtsp_request, parse_sdp_content, read_response, send_request};
-use rand::Rng;
 use std::marker::Send;
 use std::pin::Pin;
 use tokio;
 use tokio::net::TcpStream;
 use url::Url;
 
-const TCP_TIMEOUT: usize = 5;
 // RTSP客户端
 pub struct RtspClient {
     username: String,
@@ -97,7 +95,7 @@ impl RtspClient {
                 }
                 RtspResponseType::Ok => {
                     log::debug!("Ok response received");
-                    parse_sdp_content(&response, true);
+                    parse_sdp_content(&response);
                     // 解析认证类型
                     match auth_header {
                         None => Ok(AuthenticationResult::NoAuthenticationRequired),
