@@ -350,6 +350,7 @@ pub fn parse_ip_port(input: &str) -> Result<Vec<IpPort>> {
     if let Some(cidr) = ip_pattern.cidr {
         ips = apply_cidr(ips, cidr)?;
     }
+    // println!("{:?}", &ips.len());
 
     // 6. 生成端口列表
     let ports = if let Some(spec) = port_spec {
