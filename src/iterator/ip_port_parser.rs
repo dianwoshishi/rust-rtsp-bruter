@@ -1,4 +1,4 @@
-use std::net::{IpAddr, Ipv4Addr};
+use std::{collections::HashSet, net::{IpAddr, Ipv4Addr}};
 
 use crate::errors::errors::{ParseError, Result};
 
@@ -266,6 +266,7 @@ fn apply_cidr(ips: Vec<IpAddr>, cidr: u8) -> Result<Vec<IpAddr>> {
         }
     }
 
+    assert!(cidr >= 16, "the cidr of ipv4 should greater than 16 cause the ipv4 address space.");
     // 创建CIDR掩码
     let mask = if cidr == 0 {
         0
@@ -273,43 +274,45 @@ fn apply_cidr(ips: Vec<IpAddr>, cidr: u8) -> Result<Vec<IpAddr>> {
         u32::MAX << (32 - cidr)
     };
 
-    // 获取第一个IP的网络地址
-    let first_ip = if let IpAddr::V4(ipv4) = ips[0] {
-        ipv4
-    } else {
-        // 这里理论上不会发生，因为我们已经检查了所有IP都是IPv4
-        return Err(ParseError::InvalidIpFormat("Only IPv4 addresses are supported with CIDR".to_string()));
-    };
-
-    let network_addr = u32::from(first_ip) & mask;
-
-    // 如果输入只有一个IP，我们生成整个CIDR范围的IP
-    if ips.len() == 1 {
-        // 处理CIDR为0的特殊情况
-        if cidr == 0 {
-            // 返回输入的IP，因为CIDR为0包含所有IP
-            Ok(ips)
+    let mut network_addresses = HashSet::new();
+    for ip in ips {
+        // 获取第一个IP的网络地址
+        let first_ip = if let IpAddr::V4(ipv4) = ip {
+            ipv4
         } else {
-            // 计算主机数量
-            let num_hosts = 1 << (32 - cidr);
-            let mut cidr_ips = Vec::with_capacity(num_hosts as usize);
-            for i in 0..num_hosts {
-                let ip_val = network_addr + i;
-                let ipv4 = Ipv4Addr::new(
-                    ((ip_val >> 24) & 0xFF) as u8,
-                    ((ip_val >> 16) & 0xFF) as u8,
-                    ((ip_val >> 8) & 0xFF) as u8,
-                    (ip_val & 0xFF) as u8
-                );
-                cidr_ips.push(IpAddr::V4(ipv4));
-            }
-            Ok(cidr_ips)
-        }
-    } else {
-        // 否则，我们过滤输入的IP列表
-        Ok(ips)
+            // 这里理论上不会发生，因为我们已经检查了所有IP都是IPv4
+            return Err(ParseError::InvalidIpFormat("Only IPv4 addresses are supported with CIDR".to_string()));
+        };        
+        let network_addr = u32::from(first_ip) & mask;
+        network_addresses.insert(network_addr);
     }
+    // println!("{:?}", &network_addresses);
+
+    let mut cidr_ips_collection = Vec::new();
+    for network_addr in network_addresses{
+        // 如果输入只有一个IP，我们生成整个CIDR范围的IP
+
+        // 计算主机数量
+        let num_hosts = 1 << (32 - cidr);
+        let mut cidr_ips = Vec::with_capacity(num_hosts as usize);
+        for i in 0..num_hosts {
+            let ip_val = network_addr + i;
+            let ipv4 = Ipv4Addr::new(
+                ((ip_val >> 24) & 0xFF) as u8,
+                ((ip_val >> 16) & 0xFF) as u8,
+                ((ip_val >> 8) & 0xFF) as u8,
+                (ip_val & 0xFF) as u8
+            );
+            cidr_ips.push(IpAddr::V4(ipv4));
+        }
+        cidr_ips_collection.extend(cidr_ips);
+    }
+    // println!("{:?}", &cidr_ips_collection);
+
+    Ok(cidr_ips_collection)
+    
 }
+
 /// 拆分IP部分和端口部分
 fn split_ip_port(input: &str) -> Result<(&str, &str)> {
     if input.contains(':') {
@@ -324,6 +327,7 @@ fn split_ip_port(input: &str) -> Result<(&str, &str)> {
 }
 
 /// 解析IP端口字符串
+/// 例如，"10.{1-2,{3-4}}.{{5-6},7}.8:{80,443}",
 pub fn parse_ip_port(input: &str) -> Result<Vec<IpPort>> {
     // 1. 拆分IP部分和端口部分
     let (ip_part, port_part) = split_ip_port(input)?;
@@ -340,6 +344,7 @@ pub fn parse_ip_port(input: &str) -> Result<Vec<IpPort>> {
 
     // 4. 生成IP地址
     let mut ips = generate_ips(&ip_pattern);
+    // println!("{:?}", ips);
 
     // 5. 应用CIDR掩码（如果有）
     if let Some(cidr) = ip_pattern.cidr {

@@ -74,7 +74,7 @@ fn test_braced_ip_multiple(#[case] input: &str, #[case] expected: Vec<IpAddr>) {
     ]
 )]
 #[case(
-    "10.0.0.0/8",
+    "10.0.0.0/16",
     vec![
         IpAddr::V4(Ipv4Addr::new(10, 0, 0, 0)),
         // 实际测试中应包含更多IP
@@ -94,13 +94,15 @@ fn test_cidr_ip(#[case] input: &str, #[case] expected: Vec<IpAddr>) {
     "192.168.{1-2}.0/24",
     vec![
         IpAddr::V4(Ipv4Addr::new(192, 168, 1, 0)),
+        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 100)),
         IpAddr::V4(Ipv4Addr::new(192, 168, 2, 0)),
+        IpAddr::V4(Ipv4Addr::new(192, 168, 2, 100)),
         // 实际测试中应包含更多IP
     ]
 )]
 fn test_cidr_braced_ip(#[case] input: &str, #[case] expected: Vec<IpAddr>) {
     let result = parse_ip_port(input).unwrap();
-    println!("{:?}", result);
+    // println!("{:?}", result);
 
     let ips: Vec<IpAddr> = result.into_iter().map(|ip_port| ip_port.ip).collect();
     // 简化测试，实际应检查所有子网IP
@@ -143,7 +145,7 @@ fn test_ip_port_combination(#[case] input: &str, #[case] expected: Vec<(IpAddr, 
 #[rstest]
 #[case(
     "1.{1-3}.{1,2}.100/24:{80,443,8000-8001}",
-    6,  // 期望的IP数量
+    3 * 2 * 256,  // 期望的IP数量
     4   // 期望的每个IP的端口数量
 )]
 fn test_complex_format(#[case] input: &str, #[case] expected_ip_count: usize, #[case] expected_ports_per_ip: usize) {
