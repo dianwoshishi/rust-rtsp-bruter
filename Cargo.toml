@@ -3,9 +3,11 @@ name = "rust-rtsp-bruter"
 version = "0.1.0"
 edition = "2024"
 
+[[example]]
+name = "ip_port_parser_example"
+path = "examples/ip_port_parser_example.rs"
+
 [dependencies]
-# Removed reqwest since we're using raw TCP for RTSP
-# reqwest = { version = "0.11", features = ["json", "stream", "native-tls"] }
 clap = { version = "4.4", features = ["derive"] }
 rstest = "0.18"
 base64 = "0.21"
