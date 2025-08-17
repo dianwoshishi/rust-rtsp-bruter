@@ -6,18 +6,14 @@ fn main() {
     let test_cases = [
         // 单个IP和端口
         "192.168.1.1:80",
-        
         // IP范围和端口范围
         "192.168.1.1-5:8000-8002",
-        
         // 带CIDR掩码的IP
         "192.168.1.0/24:8080",
-        
         // 复杂的IP模式（带花括号）
         "10.{1-2,{3-4}}.{{5-6},7}.8:{80,443}",
-        
         // 带CIDR掩码的复杂IP模式
-        "192.168.{1-2}.0/28:555"
+        "192.168.{1-2}.0/28:555",
     ];
 
     for input in &test_cases {
@@ -29,15 +25,12 @@ fn main() {
                 let display_count = std::cmp::min(ip_ports.len(), 5);
                 for i in 0..display_count {
                     let ip_port = &ip_ports[i];
-                    println!("  {}. IP: {}, 端口: {:?}",
-                             i + 1,
-                             ip_port.ip,
-                             ip_port.ports);
+                    println!("  {}. IP: {}, 端口: {:?}", i + 1, ip_port.ip, ip_port.ports);
                 }
                 if ip_ports.len() > display_count {
                     println!("  ... 以及其他 {} 个组合", ip_ports.len() - display_count);
                 }
-            },
+            }
             Err(e) => {
                 println!("解析失败: {:?}", e);
             }

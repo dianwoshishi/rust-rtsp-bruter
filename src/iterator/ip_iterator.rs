@@ -1,3 +1,5 @@
+use tokio::net::TcpStream;
+
 use crate::errors::errors::RtspError;
 use std::fmt::Display;
 use std::hash::{Hash, Hasher};
@@ -25,6 +27,54 @@ impl Hash for IpPortAddr {
     }
 }
 
+impl IpPortAddr {
+    const TCP_TIMEOUT: u64 = 5;
+    pub fn new(ip: IpAddr, port: u16) -> Self {
+        Self { ip, port }
+
+    }
+    pub fn from_str(ip_str: &str) -> Result<Self, RtspError> {
+        let parts: Vec<&str> = ip_str.split(':').collect();
+        if parts.len() != 2 {   
+            return Err(RtspError::InvalidIpAddress(ip_str.to_string()));
+        }
+
+        let ip = parts[0].parse().map_err(|_| RtspError::InvalidIpAddress(ip_str.to_string()))?;
+        let port = parts[1].parse().map_err(|_| RtspError::InvalidIpAddress(ip_str.to_string()))?;
+        Ok(Self { ip, port })
+    }
+
+    pub async fn try_connect(&self) -> bool {
+
+        let ip_str = self.ip.to_string();   
+        let port = self.port;
+        let addr = format!("{}:{}", ip_str, port);
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(Self::TCP_TIMEOUT), 
+            tokio::net::TcpStream::connect(&addr)
+        ).await {
+            Ok(_) => true,
+            Err(_) => false,
+        }
+    }
+    pub async fn connect(&self) -> Result<TcpStream, RtspError> {
+        let ip_str = self.ip.to_string();
+        let port = self.port;
+        let addr = format!("{}:{}", ip_str, port);
+        
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(Self::TCP_TIMEOUT), 
+            tokio::net::TcpStream::connect(&addr)
+        ).await {
+            Ok(stream) => match stream {
+                Ok(stream) => Ok(stream),
+                Err(e) => Err(RtspError::ConnectionError(e.to_string())),
+            },
+            Err(e) => Err(RtspError::TimeoutError(e.to_string())),
+
+        }
+    }
+}
 // IP地址迭代器
 #[derive(Clone)]
 pub struct IpIterator {

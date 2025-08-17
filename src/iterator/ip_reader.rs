@@ -54,7 +54,7 @@ impl IpReader<IpSource> {
                             }
                         }
                     }
-                },
+                }
                 Err(parse_err) => {
                     // 解析失败，尝试作为域名处理
                     // 提取IP部分和端口部分
@@ -80,7 +80,7 @@ impl IpReader<IpSource> {
                                     ip, parse_err
                                 )));
                             }
-                        },
+                        }
                         Err(dns_err) => {
                             return Err(RtspError::InvalidIpAddress(format!(
                                 "Invalid IP address: {}. Parsing error: {:?}, DNS error: {:?}",
@@ -129,7 +129,6 @@ impl IpReader<IpSource> {
         };
 
         self.parse_ips(ips)
-
     }
 
     // 创建IP地址迭代器

@@ -1,4 +1,5 @@
 use crate::errors::errors::{AuthenticationResult, RtspError};
+use crate::iterator::ip_iterator::IpPortAddr;
 use crate::rtsp::auth;
 use crate::rtsp::common::{build_rtsp_request, parse_sdp_content, read_response, send_request};
 use rand::Rng;
@@ -14,15 +15,6 @@ pub struct RtspClient {
     username: String,
     password: String,
 }
-
-// 随机User-Agent列表
-const USER_AGENTS: &[&str] = &[
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36",
-];
 
 // RTSP响应类型枚举
 #[derive(PartialEq)]
@@ -40,16 +32,7 @@ impl RtspClient {
         }
     }
 
-    // 随机选择一个User-Agent
-    pub fn select_random_user_agent(&self) -> &'static str {
-        let user_agent = {
-            let mut rng = rand::thread_rng();
-            let random_index = rng.r#gen_range(0..USER_AGENTS.len());
-            USER_AGENTS[random_index]
-        };
-        log::trace!("Selected User-Agent: {}", user_agent);
-        user_agent
-    }
+
 
     // 构建RTSP请求的辅助方法
     pub fn build_request(
@@ -58,12 +41,11 @@ impl RtspClient {
         host: &str,
         port: u16,
         path: &str,
-        user_agent: &str,
         cseq: u32,
         auth_header: Option<&str>,
     ) -> String {
         let full_url = format!("rtsp://{}:{}{}", host, port, path);
-        build_rtsp_request(method, &full_url, host, port, cseq, user_agent, auth_header)
+        build_rtsp_request(method, &full_url, host, port, cseq, auth_header)
     }
 
     // 解析RTSP响应类型
@@ -85,7 +67,6 @@ impl RtspClient {
         host: &'a str,
         port: u16,
         path: &'a str,
-        user_agent: &'a str,
         auth_header: Option<&'a str>,
     ) -> Pin<Box<dyn futures::Future<Output = Result<AuthenticationResult, RtspError>> + Send + 'a>>
     {
@@ -106,7 +87,7 @@ impl RtspClient {
                         // 无认证头（第一次），则需要根据响应进一步认证
                         None => {
                             self.handle_auth(
-                                stream, &response, host, port, path, user_agent, "DESCRIBE", 2,
+                                stream, &response, host, port, path, "DESCRIBE", 2,
                             )
                             .await
                         }
@@ -139,13 +120,11 @@ impl RtspClient {
         host: &'a str,
         port: u16,
         path: &'a str,
-        user_agent: &'a str,
         method: &'a str,
         cseq: u32,
     ) -> Result<AuthenticationResult, RtspError> {
         log::debug!("Handling authentication for {} request", method);
         let auth_type = auth::parse_auth_challenge(response)?;
-
         // 生成完整URL
         let full_url = format!("rtsp://{}:{}{}", host, port, path);
 
@@ -166,7 +145,6 @@ impl RtspClient {
             host,
             port,
             cseq,
-            user_agent,
             Some(&auth_header),
         );
 
@@ -177,7 +155,6 @@ impl RtspClient {
             host,
             port,
             path,
-            user_agent,
             Some(&auth_header),
         )
         .await
@@ -199,24 +176,18 @@ impl RtspClient {
         );
 
         // 连接到RTSP服务器
-        let addr = format!("{}:{}", host, port);
+        let ip = host.parse().map_err(|_| RtspError::InvalidIpAddress(host.to_string()))?;
+        let addr = IpPortAddr::new(ip, port);
         log::debug!("Connecting to RTSP server at {}", addr);
-        // 设置连接超时为5秒
-        let mut stream =
-            tokio::time::timeout(std::time::Duration::from_secs(TCP_TIMEOUT as u64), TcpStream::connect(addr))
-                .await
-                .map_err(|_| RtspError::ConnectionError("Connection timeout".to_string()))?
-                .map_err(|e| {
-                    RtspError::ConnectionError(format!("Failed to connect to RTSP server: {}", e))
-                })?;
-        log::debug!("Connected to RTSP server");
 
-        // 选择随机User-Agent
-        let user_agent = self.select_random_user_agent();
+        let mut stream = addr.connect().await.map_err(|e| {
+            RtspError::ConnectionError(format!("Failed to connect to RTSP server: {}", e))
+        })?;
 
+        // 第一次请求，无认证头。通过响应确定使用什么认证方式
         let auth_header: Option<&str> = None;
         // 构建初始RTSP请求
-        let request = self.build_request("DESCRIBE", host, port, &path, user_agent, 1, auth_header);
+        let request = self.build_request("DESCRIBE", host, port, &path, 1, auth_header);
 
         // 使用通用方法发送请求并处理响应
         return self
@@ -226,7 +197,6 @@ impl RtspClient {
                 host,
                 port,
                 &path,
-                user_agent,
                 auth_header,
             )
             .await;

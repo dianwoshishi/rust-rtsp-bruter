@@ -112,36 +112,39 @@ impl AppConfig {
 
 /// 从命令行和配置文件加载参数，以命令行为主，配置文件补充
 pub fn load_and_merge_config() -> Result<AppConfig, Box<dyn std::error::Error>> {
-    // 解析命令行参数，如果解析失败则使用默认值
-    let cli = Cli::try_parse().unwrap_or_else(|e| {
-        log::warn!("Failed to parse CLI arguments: {}. Using default values.", e);
-        Cli::Args {
-            users_file: None,
-            users_string: None,
-            passwords_file: None,
-            passwords_string: None,
-            ips_file: None,
-            ips_string: None,
-            max_concurrent: 5,
-        }
-    });
+    // 解析命令行参数，如果解析失败则使用config.toml中的默认值
+    let cli = Cli::parse();
     log::debug!("{:?}", cli);
 
+    let config = {
     // 加载配置文件
-    let config_path = std::path::PathBuf::from("./config.toml");
-    let config = AppConfig::load_from_file(&config_path).unwrap_or_else(|_| {
-        log::debug!("Failed to load config file, using default values");
-        AppConfig {
-            mode: "brute".to_string(),
-            users_file: Some("users.txt".to_string()),
-            users_string: None,
-            passwords_file: Some("passwords.txt".to_string()),
-            passwords_string: None,
-            ips_file: Some("iplist.txt".to_string()),
-            ips_string: None,
-            max_concurrent: 5,
-        }
-    });
+        let config_path = std::path::PathBuf::from("./config.toml");
+        if config_path.exists() {
+            log::debug!("Config file found, loading...");
+            let config = match AppConfig::load_from_file(&config_path) {
+                Ok(config) => config,
+                Err(e) => {
+                    log::error!("Failed to load config file: {:?}", e);
+                    return Err(e);
+                }
+            };
+            log::debug!("Config file loaded: {:?}", config);
+            config
+        } else {
+            log::debug!("Config file not found, using default values");
+            AppConfig {    
+                mode: "brute".to_string(),
+                users_file: None,
+                users_string: Some("admin".to_string()),
+                passwords_file: None,
+                passwords_string: Some("admin".to_string()),
+                ips_file: None,
+                ips_string: Some("127.0.0.1".to_string()),
+                max_concurrent: 5,
+            }
+        }     
+    };
+    
     log::debug!("{:?}", config);
 
     // 合并配置文件和命令行参数
@@ -151,10 +154,8 @@ pub fn load_and_merge_config() -> Result<AppConfig, Box<dyn std::error::Error>> 
 }
 
 /// 加载配置文件并处理命令行参数
-pub async fn load_config_and_handle_cli() -> Result<(), Box<dyn std::error::Error>> {
-    // 加载并合并配置文件和命令行参数
-    let merged_config = load_and_merge_config()?;
-    
+pub async fn load_config_and_handle_cli(merged_config: AppConfig) -> Result<(), Box<dyn std::error::Error>> {
+
     crate::cli::cli::handle_cli(Cli::Args {
         users_file: merged_config.users_file,
         users_string: merged_config.users_string,

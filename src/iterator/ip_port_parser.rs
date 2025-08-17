@@ -1,4 +1,7 @@
-use std::{collections::HashSet, net::{IpAddr, Ipv4Addr}};
+use std::{
+    collections::HashSet,
+    net::{IpAddr, Ipv4Addr},
+};
 
 use crate::errors::errors::{ParseError, Result};
 
@@ -12,7 +15,7 @@ enum IpSegment {
     /// 多个选择项 (如 1,5,10-20)
     Multiple(Vec<IpSegment>),
     /// 嵌套的花括号表达式 (如 {1-100}, {1,5,10-20})
-    Braced(Vec<IpSegment>)
+    Braced(Vec<IpSegment>),
 }
 
 /// IP地址模式
@@ -21,7 +24,7 @@ struct IpAddrPattern {
     /// IP地址的四个段
     segments: [IpSegment; 4],
     /// 可选的CIDR掩码 (如 24 表示 /24)
-    cidr: Option<u8>
+    cidr: Option<u8>,
 }
 
 /// 端口规范
@@ -32,14 +35,14 @@ enum PortSpec {
     /// 端口范围 (如 8000-8010)
     Range(u16, u16),
     /// 多个端口或范围 (如 80,443,8000-8010)
-    Multiple(Vec<PortSpec>)
+    Multiple(Vec<PortSpec>),
 }
 
 /// IP端口组合
 #[derive(Debug, Clone)]
 pub struct IpPort {
     pub ip: IpAddr,
-    pub ports: Vec<u16>
+    pub ports: Vec<u16>,
 }
 
 /// IP段解析器
@@ -50,7 +53,7 @@ impl IpSegmentParser {
     fn parse_segment(input: &str) -> Result<IpSegment> {
         // 处理花括号表达式
         if input.starts_with('{') && input.ends_with('}') {
-            let content = &input[1..input.len()-1];
+            let content = &input[1..input.len() - 1];
             let segments = Self::parse_multiple_segments(content)?;
             return Ok(IpSegment::Braced(segments));
         }
@@ -68,9 +71,11 @@ impl IpSegmentParser {
                 return Err(ParseError::InvalidIpSegmentFormat(input.to_string()));
             }
 
-            let start = parts[0].parse::<u8>()
+            let start = parts[0]
+                .parse::<u8>()
                 .map_err(|_| ParseError::InvalidIpSegmentFormat(input.to_string()))?;
-            let end = parts[1].parse::<u8>()
+            let end = parts[1]
+                .parse::<u8>()
                 .map_err(|_| ParseError::InvalidIpSegmentFormat(input.to_string()))?;
 
             if start > end {
@@ -81,7 +86,8 @@ impl IpSegmentParser {
         }
 
         // 处理单个数值
-        let val = input.parse::<u8>()
+        let val = input
+            .parse::<u8>()
             .map_err(|_| ParseError::InvalidIpSegmentFormat(input.to_string()))?;
         Ok(IpSegment::Single(val))
     }
@@ -118,7 +124,8 @@ impl IpAddrPatternParser {
                 return Err(ParseError::InvalidCidrFormat(input.to_string()));
             }
 
-            let cidr_val = parts[1].parse::<u8>()
+            let cidr_val = parts[1]
+                .parse::<u8>()
                 .map_err(|_| ParseError::InvalidCidrValue(parts[1].to_string()))?;
 
             if cidr_val > 32 {
@@ -143,10 +150,7 @@ impl IpAddrPatternParser {
             segments[i] = IpSegmentParser::parse_segment(octet)?;
         }
 
-        Ok(IpAddrPattern {
-            segments,
-            cidr
-        })
+        Ok(IpAddrPattern { segments, cidr })
     }
 }
 
@@ -158,7 +162,7 @@ impl PortParser {
     fn parse(input: &str) -> Result<PortSpec> {
         // 处理花括号表达式
         if input.starts_with('{') && input.ends_with('}') {
-            let content = &input[1..input.len()-1];
+            let content = &input[1..input.len() - 1];
             return Self::parse(content);
         }
 
@@ -186,9 +190,11 @@ impl PortParser {
                 return Err(ParseError::InvalidPortRangeFormat(input.to_string()));
             }
 
-            let start = parts[0].parse::<u16>()
+            let start = parts[0]
+                .parse::<u16>()
                 .map_err(|_| ParseError::InvalidPortNumber(parts[0].to_string()))?;
-            let end = parts[1].parse::<u16>()
+            let end = parts[1]
+                .parse::<u16>()
                 .map_err(|_| ParseError::InvalidPortNumber(parts[1].to_string()))?;
 
             if start > end {
@@ -199,7 +205,8 @@ impl PortParser {
         }
 
         // 处理单个数值
-        let val = input.parse::<u16>()
+        let val = input
+            .parse::<u16>()
             .map_err(|_| ParseError::InvalidPortNumber(input.to_string()))?;
         Ok(PortSpec::Single(val))
     }
@@ -210,12 +217,8 @@ fn expand_segment(segment: &IpSegment) -> Vec<u8> {
     match segment {
         IpSegment::Single(val) => vec![*val],
         IpSegment::Range(start, end) => (*start..=*end).collect(),
-        IpSegment::Multiple(segments) => segments.iter()
-              .flat_map(expand_segment)
-              .collect(),
-        IpSegment::Braced(segments) => segments.iter()
-              .flat_map(expand_segment)
-              .collect(),
+        IpSegment::Multiple(segments) => segments.iter().flat_map(expand_segment).collect(),
+        IpSegment::Braced(segments) => segments.iter().flat_map(expand_segment).collect(),
     }
 }
 
@@ -224,9 +227,7 @@ fn expand_port_spec(spec: &PortSpec) -> Vec<u16> {
     match spec {
         PortSpec::Single(port) => vec![*port],
         PortSpec::Range(start, end) => (*start..=*end).collect(),
-        PortSpec::Multiple(specs) => specs.iter()
-            .flat_map(expand_port_spec)
-            .collect()
+        PortSpec::Multiple(specs) => specs.iter().flat_map(expand_port_spec).collect(),
     }
 }
 
@@ -262,11 +263,16 @@ fn apply_cidr(ips: Vec<IpAddr>, cidr: u8) -> Result<Vec<IpAddr>> {
     // 检查所有IP是否为IPv4
     for ip in &ips {
         if !ip.is_ipv4() {
-            return Err(ParseError::InvalidIpFormat("Only IPv4 addresses are supported with CIDR".to_string()));
+            return Err(ParseError::InvalidIpFormat(
+                "Only IPv4 addresses are supported with CIDR".to_string(),
+            ));
         }
     }
 
-    assert!(cidr >= 16, "the cidr of ipv4 should greater than 16 cause the ipv4 address space.");
+    assert!(
+        cidr >= 16,
+        "the cidr of ipv4 should greater than 16 cause the ipv4 address space."
+    );
     // 创建CIDR掩码
     let mask = if cidr == 0 {
         0
@@ -281,15 +287,17 @@ fn apply_cidr(ips: Vec<IpAddr>, cidr: u8) -> Result<Vec<IpAddr>> {
             ipv4
         } else {
             // 这里理论上不会发生，因为我们已经检查了所有IP都是IPv4
-            return Err(ParseError::InvalidIpFormat("Only IPv4 addresses are supported with CIDR".to_string()));
-        };        
+            return Err(ParseError::InvalidIpFormat(
+                "Only IPv4 addresses are supported with CIDR".to_string(),
+            ));
+        };
         let network_addr = u32::from(first_ip) & mask;
         network_addresses.insert(network_addr);
     }
     // println!("{:?}", &network_addresses);
 
     let mut cidr_ips_collection = Vec::new();
-    for network_addr in network_addresses{
+    for network_addr in network_addresses {
         // 如果输入只有一个IP，我们生成整个CIDR范围的IP
 
         // 计算主机数量
@@ -301,7 +309,7 @@ fn apply_cidr(ips: Vec<IpAddr>, cidr: u8) -> Result<Vec<IpAddr>> {
                 ((ip_val >> 24) & 0xFF) as u8,
                 ((ip_val >> 16) & 0xFF) as u8,
                 ((ip_val >> 8) & 0xFF) as u8,
-                (ip_val & 0xFF) as u8
+                (ip_val & 0xFF) as u8,
             );
             cidr_ips.push(IpAddr::V4(ipv4));
         }
@@ -310,7 +318,6 @@ fn apply_cidr(ips: Vec<IpAddr>, cidr: u8) -> Result<Vec<IpAddr>> {
     // println!("{:?}", &cidr_ips_collection);
 
     Ok(cidr_ips_collection)
-    
 }
 
 /// 拆分IP部分和端口部分
@@ -360,10 +367,11 @@ pub fn parse_ip_port(input: &str) -> Result<Vec<IpPort>> {
     };
 
     // 7. 组合IP和端口
-    Ok(ips.into_iter()
+    Ok(ips
+        .into_iter()
         .map(|ip| IpPort {
             ip,
-            ports: ports.clone()
+            ports: ports.clone(),
         })
         .collect())
 }

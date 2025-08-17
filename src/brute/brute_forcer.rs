@@ -127,7 +127,7 @@ impl BruteForcer {
                 }
             }
             Err(e) => {
-                error!("Error during authentication attempt: {:?}", e);
+                debug!("Error during authentication attempt: {:?}", e);
                 Err(e)
             }
         }
@@ -151,46 +151,77 @@ impl BruteForcer {
     pub async fn brute_force(self: Arc<Self>) -> Result<(), RtspError> {
         let start_time = Instant::now();
         info!("Max concurrent attempts: {}", self.max_concurrent);
-        info!("Total IPs to scan: {}", self.ip_iterator.clone().count());
+        info!("Total IP:ports to scan: {}", self.ip_iterator.clone().count());
         info!(
             "Total credential combinations: {}",
             self.credential_iterator.clone().count()
         );
 
-        // 创建信号量限制并发数
-        let semaphore = Arc::new(Semaphore::new(self.max_concurrent as usize));
-        let total_tasks =
-            self.ip_iterator.clone().count() * self.credential_iterator.clone().count();
+        let total_tasks = self.ip_iterator.clone().count() * self.credential_iterator.clone().count();
         info!("Total tasks to create: {}", total_tasks);
         let mut tasks = Vec::new();
 
-        // 为每个IP和凭据组合创建任务
-        for (ip_idx, ip) in self.ip_iterator.clone().enumerate() {
-            for (cred_idx, (username, password)) in self.credential_iterator.clone().enumerate() {
-                // 提前获取信号量许可
-                let permit = semaphore.clone().acquire_owned().await.unwrap();
-                let this_clone = self.clone();
-                let ip_clone = ip.clone();
-                let username_clone = username.clone();
-                let password_clone = password.clone();
-                let task_idx = ip_idx * self.credential_iterator.clone().count() + cred_idx;
+        // 创建信号量限制并发数
+        let semaphore = Arc::new(Semaphore::new(self.max_concurrent as usize));
 
-                trace!("Creating task {} of {}", task_idx + 1, total_tasks);
-                let task = tokio::spawn(async move {
-                    let _permit = permit;
-                    trace!(
-                        "Task {} started on thread {:?}",
-                        task_idx + 1,
-                        thread::current().id()
-                    );
-                    let result = this_clone
-                        .try_credentials(&username_clone, &password_clone, &ip_clone)
-                        .await;
-                    trace!("Task {} completed", task_idx + 1);
-                    result
-                });
-                tasks.push(task);
+        // 并行尝试连接所有IP
+        let mut connect_tasks = Vec::new();
+        for (_, ip) in self.ip_iterator.clone().enumerate() {
+            let ip_clone = ip.clone();
+            let semaphore_clone = semaphore.clone();
+            connect_tasks.push(tokio::spawn(async move {
+                // 获取信号量许可
+                let _permit = semaphore_clone.acquire_owned().await.unwrap();
+                let is_connected = ip_clone.try_connect().await;
+                (ip_clone, is_connected)
+            }));
+        }
+
+        // 为每个成功连接的IP创建凭据尝试任务
+        let mut ip_idx = 0;
+        for connect_task in connect_tasks {
+            match connect_task.await {
+                // 只有成功连接的IP才创建任务
+
+                Ok((ip, true)) => {
+                    debug!("Successfully connected to {}", ip);
+
+                    for (cred_idx, (username, password)) in self.credential_iterator.clone().enumerate() {
+                        // 提前获取信号量许可
+                        let permit = semaphore.clone().acquire_owned().await.unwrap();
+                        let this_clone = self.clone();
+                        let ip_clone = ip.clone();
+                        let username_clone = username.clone();
+                        let password_clone = password.clone();
+                        let task_idx = ip_idx * self.credential_iterator.clone().count() + cred_idx;
+
+                        trace!("Creating task {} of {}", task_idx + 1, total_tasks);
+                        let task = tokio::spawn(async move {
+                            let _permit = permit;
+                            trace!(
+                                "Task {} started on thread {:?}",
+                                task_idx + 1,
+                                thread::current().id()
+                            );
+                            let result = this_clone
+                                .try_credentials(&username_clone, &password_clone, &ip_clone)
+                                .await;
+                            trace!("Task {} completed", task_idx + 1);
+                            result
+                        });
+                        tasks.push(task);
+                    }
+                },
+                Ok((ip, false)) => {
+                    debug!("Failed to connect to {}. Skip credentials.", &ip);
+
+                    // println!("Failed to connect to {}", &ip);
+                },
+                Err(e) => {
+                    error!("Connection task failed: {:?}", e);
+                }
             }
+            ip_idx += 1;
         }
 
         info!("All tasks created. Waiting for completion...");

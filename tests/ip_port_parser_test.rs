@@ -1,6 +1,6 @@
-use std::net::{IpAddr, Ipv4Addr};
-use rust_rtsp_bruter::iterator::ip_port_parser::{parse_ip_port, IpPort};
 use rstest::rstest;
+use rust_rtsp_bruter::iterator::ip_port_parser::{IpPort, parse_ip_port};
+use std::net::{IpAddr, Ipv4Addr};
 
 /// 测试单个IP地址解析
 #[rstest]
@@ -160,7 +160,11 @@ fn test_ip_port_combination(#[case] input: &str, #[case] expected: Vec<(IpAddr, 
     1024,  // 期望的IP数量
     4   // 期望的每个IP的端口数量
 )]
-fn test_complex_format(#[case] input: &str, #[case] expected_ip_count: usize, #[case] expected_ports_per_ip: usize) {
+fn test_complex_format(
+    #[case] input: &str,
+    #[case] expected_ip_count: usize,
+    #[case] expected_ports_per_ip: usize,
+) {
     let result = parse_ip_port(input).unwrap();
     assert_eq!(result.len(), expected_ip_count);
     for ip_port in result {
@@ -249,7 +253,7 @@ fn test_cidr_boundaries(#[case] input: &str) {
 #[rstest]
 #[case("invalid-ip")]
 #[case("192.168.1.1:invalid-port")]
-#[case("192.168.1.1/33")]  // 无效的CIDR掩码
+#[case("192.168.1.1/33")] // 无效的CIDR掩码
 fn test_error_handling(#[case] input: &str) {
     let result = parse_ip_port(input);
     assert!(result.is_err());

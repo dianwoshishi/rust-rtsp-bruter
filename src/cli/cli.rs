@@ -25,7 +25,7 @@ pub fn parse_brute_args(cli: Cli) -> Result<(IpIterator, CredentialIterator, u32
 
     // ip迭代器，从文件或者命令行参数中获取Ip地址并解析
     let ip_iterator: IpIterator = {
-            // 创建IP读取器
+        // 创建IP读取器
         let ip_reader = match (ips_file, ips_string) {
             (Some(file), None) => IpReader::<IpSource>::from_file(&file),
             (None, Some(ip)) => IpReader::<IpSource>::from_string(&ip),
@@ -40,14 +40,9 @@ pub fn parse_brute_args(cli: Cli) -> Result<(IpIterator, CredentialIterator, u32
     };
 
     // 凭证迭代器，从文件或命令行参数中获取（username，password）对
-    let cred_iterator:CredentialIterator = {
+    let cred_iterator: CredentialIterator = {
         // 创建凭据读取器和迭代器
-        let credential_reader = match (
-                                                                    users_file,
-                                                                    users_string,
-                                                                    passwords_file,
-                                                                    passwords_string)
-        {
+        let credential_reader = match (users_file, users_string, passwords_file, passwords_string) {
             (Some(u_file), None, Some(p_file), None) => {
                 CredentialReader::<CredentialSource>::from_files(&u_file, &p_file)
             }
