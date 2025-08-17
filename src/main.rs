@@ -4,10 +4,12 @@ use log::{debug};
 use log4rs;
 use rust_rtsp_bruter::config::config::{load_and_merge_config, load_config_and_handle_cli};
 use rust_rtsp_bruter::rtsp::rtsp_worker::RTSP_WORKER_MANAGER;
+use timing_macro::timing;
 use tokio;
 
 // 主函数
 #[tokio::main]
+#[timing]
 async fn main() -> Result<(), Box<dyn Error>> {
     // 初始化日志
     log4rs::init_file("log4rs.yaml", Default::default()).expect("Failed to initialize log4rs");
